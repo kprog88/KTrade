@@ -1,0 +1,171 @@
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.portfolio-overview {
+  grid-column: span 12;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(13, 14, 21, 0) 100%);
+  border-left: 4px solid var(--accent-color);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.trend-positive {
+  color: var(--success-color);
+  font-size: 1rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.trend-negative {
+  color: var(--danger-color);
+  font-size: 1rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.holdings-panel {
+  grid-column: span 8;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.ai-panel {
+  grid-column: span 4;
+  min-height: 300px;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(13, 14, 21, 0) 100%);
+  border-top: 2px solid var(--success-color);
+  overflow: hidden;
+}
+
+.chart-placeholder {
+  width: 100%;
+  height: 200px;
+  margin-top: 1rem;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.5; }
+}
+
+.momentum-card {
+  position: relative;
+  overflow: visible;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.momentum-card:hover {
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.momentum-tooltip {
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%) translateY(15px) scale(0.9);
+  width: 220px;
+  background: var(--bg-color);
+  border: 1px solid var(--accent-color);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  padding: 1rem;
+  border-radius: 12px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1000;
+  pointer-events: none;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.momentum-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -8px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: var(--accent-color) transparent transparent transparent;
+}
+
+.momentum-card:hover .momentum-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* =====================
+   MOBILE — Dashboard
+   ===================== */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+
+  /* All grid children go full width on mobile */
+  .dashboard-grid > * {
+    grid-column: 1 / -1 !important;
+  }
+
+  .holdings-panel,
+  .ai-panel,
+  .portfolio-overview {
+    grid-column: 1 / -1 !important;
+  }
+
+  .metric-value {
+    font-size: 1.4rem;
+  }
+
+  .momentum-tooltip {
+    display: none;
+  }
+
+  /* Momentum cards: slightly narrower on mobile for better scroll */
+  .momentum-card {
+    flex: 0 0 160px !important;
+    min-width: 160px;
+  }
+}
