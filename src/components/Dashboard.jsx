@@ -219,9 +219,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="glass-panel" style={{ gridColumn: 'span 12', marginTop: '1.5rem' }}>
+      <div className="glass-panel" style={{ gridColumn: 'span 12', marginTop: '1.5rem', overflow: 'visible' }}>
          <h2 style={{ marginBottom: '1rem' }}>Market Opportunities</h2>
-         <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', paddingTop: '120px', marginTop: '-120px' }}>
+         <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
            {momentum.map((stock, i) => {
              const isPositive = stock.change >= 0;
              // Procedural AI rationales
