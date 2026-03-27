@@ -34,10 +34,16 @@
   border-radius: 12px;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -50,7 +56,6 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Background gradient blobs */
 body::before {
   content: '';
   position: fixed;
@@ -84,6 +89,8 @@ body::after {
   box-shadow: var(--glass-shadow);
   padding: 1.5rem;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .glass-panel:hover {
@@ -105,6 +112,7 @@ button {
 
 input, select {
   font-family: inherit;
+  max-width: 100%;
 }
 
 @keyframes pulse {
@@ -113,17 +121,7 @@ input, select {
   100% { opacity: 1; transform: scale(1); }
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--panel-border);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
-}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }

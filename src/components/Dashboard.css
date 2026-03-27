@@ -2,13 +2,17 @@
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 .portfolio-overview {
   grid-column: span 12;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(13, 14, 21, 0) 100%);
   border-left: 4px solid var(--accent-color);
 }
@@ -52,6 +56,7 @@
 .holdings-panel {
   grid-column: span 8;
   min-height: 300px;
+  overflow: hidden;
 }
 
 .ai-panel {
@@ -59,6 +64,7 @@
   min-height: 300px;
   background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(13, 14, 21, 0) 100%);
   border-top: 2px solid var(--success-color);
+  overflow: hidden;
 }
 
 .chart-placeholder {
@@ -129,37 +135,26 @@
   transform: translateX(-50%) translateY(0) scale(1);
 }
 
-/* ============================================
-   MOBILE RESPONSIVE — Dashboard
-   ============================================ */
+/* =====================
+   MOBILE — Dashboard
+   ===================== */
 @media (max-width: 768px) {
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 1rem;
   }
 
-  /* All spanning panels go full width */
   .holdings-panel,
   .ai-panel,
-  .portfolio-overview,
-  [style*="gridColumn"] {
-    grid-column: span 1 !important;
-  }
-
-  /* Shrink the big portfolio metric values */
-  .metric-value {
-    font-size: 1.4rem;
-  }
-
-  /* Portfolio overview wraps on small screens */
   .portfolio-overview {
-    flex-wrap: wrap;
-    gap: 1rem;
+    grid-column: 1 / -1 !important;
   }
 
-  /* Momentum tooltip repositions above card on mobile */
+  .metric-value {
+    font-size: 1.5rem;
+  }
+
   .momentum-tooltip {
-    width: 180px;
-    font-size: 0.75rem;
+    display: none;
   }
 }
