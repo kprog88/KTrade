@@ -130,7 +130,7 @@ function App() {
         </PortfolioProvider>
 
         <footer style={{ textAlign: 'center', padding: '1rem', marginTop: 'auto', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-          &copy; {new Date().getFullYear()} All rights reserved to Alex Katzevich
+          &copy; {new Date().getFullYear()} KTrade — Alex Katzevich
         </footer>
       </main>
 
