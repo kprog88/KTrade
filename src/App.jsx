@@ -15,12 +15,11 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
 
-  // Detect mobile by User Agent (reliable on Samsung/Android) + touch points
+  // Use screen.width (real hardware size) — immune to desktop-mode UA spoofing
   const checkMobile = () => {
-    const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isTouch = navigator.maxTouchPoints > 2;
-    const isNarrow = window.innerWidth <= 1024;
-    return mobileUA || (isTouch && isNarrow);
+    const isSmallScreen = window.screen.width <= 900;
+    const isTouch = navigator.maxTouchPoints > 0;
+    return isSmallScreen && isTouch;
   };
 
   const [isMobile, setIsMobile] = useState(checkMobile);
