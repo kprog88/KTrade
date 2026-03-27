@@ -115,7 +115,7 @@ export default function Watchlist() {
 
   return (
     <div className="portfolio-container">
-      <div className="portfolio-header" style={{ position: 'relative', zIndex: 1000 }}>
+      <div className="portfolio-header" style={{ position: 'relative', zIndex: 1000, overflow: 'visible' }}>
         <h2>Your Watchlist</h2>
         <div style={{ display: 'flex', gap: '0.75rem', position: 'relative', alignItems: 'center', flexWrap: 'wrap' }}>
           {selectedStock ? (
