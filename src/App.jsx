@@ -43,21 +43,24 @@ function App() {
             className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }}
           >
-            Dashboard
+            <span style={{ fontSize: '1.2rem' }}>📊</span>
+            <span>Dashboard</span>
           </a>
           <a 
             href="#" 
             className={`nav-item ${activeTab === 'portfolio' ? 'active' : ''}`}
             onClick={(e) => { e.preventDefault(); setActiveTab('portfolio'); }}
           >
-            Portfolio
+            <span style={{ fontSize: '1.2rem' }}>💼</span>
+            <span>Portfolio</span>
           </a>
           <a 
             href="#" 
             className={`nav-item ${activeTab === 'watchlist' ? 'active' : ''}`}
             onClick={(e) => { e.preventDefault(); setActiveTab('watchlist'); }}
           >
-            Watchlist
+            <span style={{ fontSize: '1.2rem' }}>👁️</span>
+            <span>Watchlist</span>
           </a>
           <a 
             href="#" 
@@ -66,7 +69,7 @@ function App() {
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--panel-border)' }}
           >
             <BookOpen size={18} />
-            Learning Academy
+            <span>Academy</span>
           </a>
         </nav>
       </aside>

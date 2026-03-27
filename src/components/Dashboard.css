@@ -128,3 +128,38 @@
   visibility: visible;
   transform: translateX(-50%) translateY(0) scale(1);
 }
+
+/* ============================================
+   MOBILE RESPONSIVE — Dashboard
+   ============================================ */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* All spanning panels go full width */
+  .holdings-panel,
+  .ai-panel,
+  .portfolio-overview,
+  [style*="gridColumn"] {
+    grid-column: span 1 !important;
+  }
+
+  /* Shrink the big portfolio metric values */
+  .metric-value {
+    font-size: 1.4rem;
+  }
+
+  /* Portfolio overview wraps on small screens */
+  .portfolio-overview {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  /* Momentum tooltip repositions above card on mobile */
+  .momentum-tooltip {
+    width: 180px;
+    font-size: 0.75rem;
+  }
+}
