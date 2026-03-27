@@ -14,7 +14,16 @@ function App() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  // Detect mobile by User Agent (reliable on Samsung/Android) + touch points
+  const checkMobile = () => {
+    const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isTouch = navigator.maxTouchPoints > 2;
+    const isNarrow = window.innerWidth <= 1024;
+    return mobileUA || (isTouch && isNarrow);
+  };
+
+  const [isMobile, setIsMobile] = useState(checkMobile);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
