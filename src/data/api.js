@@ -58,6 +58,17 @@ export const fetchMomentum = async () => {
   }
 };
 
+export const fetchInstitutional = async (symbol) => {
+  try {
+    const res = await fetch(`/api/institutional?symbol=${encodeURIComponent(symbol)}`);
+    if (!res.ok) throw new Error('Failed');
+    return await res.json();
+  } catch (error) {
+    console.error(`Institutional fetch error for ${symbol}:`, error);
+    return null;
+  }
+};
+
 export const fetchTechnical = async (symbol) => {
   try {
     const res = await fetch(`/api/technical?symbol=${encodeURIComponent(symbol)}`);

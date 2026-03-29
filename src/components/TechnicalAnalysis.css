@@ -177,6 +177,246 @@
 .ta-badge.neutral      { background: rgba(148,163,184,0.07); border-color: rgba(148,163,184,0.15); color: #94a3b8; }
 .ta-badge.strong-vol   { background: rgba(139,92,246,0.1);   border-color: rgba(139,92,246,0.25); color: #c4b5fd; }
 
+/* ─── INSTITUTIONAL SECTION ──────────────────────────────────────────────── */
+
+.ta-inst-section {
+  background: rgba(59, 130, 246, 0.04);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.ta-inst-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #3b82f6;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ta-inst-loading,
+.ta-inst-unavailable {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  padding: 0.5rem 0;
+}
+
+.ta-inst-unavailable { color: var(--text-secondary); opacity: 0.6; }
+
+/* Stats row */
+.ta-inst-stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ta-inst-stat {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  min-width: 110px;
+  flex: 1;
+  text-align: center;
+}
+
+.ta-inst-stat-val {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ta-inst-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Top holders table */
+.ta-holders {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ta-holders-title,
+.ta-insider-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.ta-holder-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--panel-border);
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ta-holder-row:last-of-type { border-bottom: none; }
+
+.ta-holder-row.highlight {
+  background: rgba(139, 92, 246, 0.06);
+  margin: 0 -0.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 6px;
+}
+
+.ta-holder-fire { margin-right: 0.25rem; }
+
+.ta-holder-name {
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ta-holder-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.ta-holder-pct {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 42px;
+  text-align: right;
+}
+
+.ta-holder-change {
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 80px;
+  text-align: right;
+}
+.ta-holder-change.up   { color: var(--success-color); }
+.ta-holder-change.down { color: var(--danger-color);  }
+.ta-holder-change.flat { color: var(--text-secondary); }
+
+.ta-holders-note {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  opacity: 0.55;
+  margin-top: 0.4rem;
+  font-style: italic;
+}
+
+/* Insider transactions */
+.ta-insider {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ta-insider-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  margin-bottom: 0.3rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ta-insider-row.buy  { background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.15); }
+.ta-insider-row.sell { background: rgba(239,68,68,0.06);  border: 1px solid rgba(239,68,68,0.12);  }
+
+.ta-insider-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.ta-insider-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ta-insider-role {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.ta-insider-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ta-insider-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  letter-spacing: 0.05em;
+}
+.ta-insider-badge.buy  { background: rgba(16,185,129,0.2); color: #10b981; }
+.ta-insider-badge.sell { background: rgba(239,68,68,0.2);  color: #ef4444; }
+
+.ta-insider-shares {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.ta-insider-date {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+/* Interpretation */
+.ta-inst-interp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+.ta-inst-interp p {
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
 /* ─── MA TOGGLE BUTTONS ───────────────────────────────────────────────────── */
 
 .ta-ma-toggles {
@@ -398,4 +638,8 @@
   .ta-badge           { min-width: 82px; }
   .ta-plain-actions   { grid-template-columns: 1fr; }
   .ta-plain-text      { font-size: 0.82rem; }
+  .ta-inst-stat       { min-width: 90px; }
+  .ta-holder-row      { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+  .ta-holder-right    { width: 100%; justify-content: flex-start; }
+  .ta-insider-row     { flex-direction: column; align-items: flex-start; }
 }

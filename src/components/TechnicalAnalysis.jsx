@@ -4,9 +4,9 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine, Cell
 } from 'recharts'
-import { TrendingUp, BarChart2, Activity } from 'lucide-react'
+import { TrendingUp, BarChart2, Activity, Building2, UserCheck, AlertTriangle } from 'lucide-react'
 import { usePortfolio } from '../context/PortfolioContext'
-import { fetchTechnical } from '../data/api'
+import { fetchTechnical, fetchInstitutional } from '../data/api'
 import './TechnicalAnalysis.css'
 
 // ─── INDICATOR MATH ─────────────────────────────────────────────────────────
@@ -266,6 +266,62 @@ function buildPlainSummary(symbol, sigData, holding) {
   return { headline, bullets, actionOwn, actionNotOwn, isBullish, isBearish };
 }
 
+// ─── INSTITUTIONAL INTERPRETATION ───────────────────────────────────────────
+
+function buildInstInterpretation(inst) {
+  const { breakdown, topHolders, transactions } = inst;
+
+  const buyers    = topHolders.filter(h => h.pctChange > 0.002);
+  const sellers   = topHolders.filter(h => h.pctChange < -0.002);
+  const bigBuyers = topHolders.filter(h => h.pctChange > 0.05);
+  const newEntry  = topHolders.filter(h => h.pctChange > 0.1);
+
+  const insideBuys  = transactions.filter(t => t.code === 'P');
+  const insideSells = transactions.filter(t => t.code === 'S');
+
+  const parts = [];
+
+  // Institutional activity
+  if (newEntry.length > 0) {
+    parts.push(`🚨 Major move: ${newEntry[0].name} has dramatically increased their position — this signals very high conviction from a large fund that has done deep research on this stock.`);
+  } else if (bigBuyers.length > 0) {
+    parts.push(`📈 ${bigBuyers[0].name} significantly added to their stake. When a major fund makes a large addition, it usually reflects strong confidence in future performance.`);
+  } else if (buyers.length > sellers.length) {
+    parts.push(`📈 ${buyers.length} of the top institutional holders are growing their positions. In general, when large professional investors are buying, they see more upside than downside ahead.`);
+  } else if (sellers.length > 0 && sellers.length > buyers.length) {
+    parts.push(`📉 More big funds are trimming their positions than adding. This can mean professional money managers see limited upside or rising risk — worth paying attention to.`);
+  } else {
+    parts.push(`⚖️ Institutional holders are mostly holding steady — no dramatic buying or selling from the big funds recently.`);
+  }
+
+  // Institutional ownership level
+  if (breakdown.institutionPct != null) {
+    const pct = (breakdown.institutionPct * 100).toFixed(0);
+    if (breakdown.institutionPct > 0.8) {
+      parts.push(`At ${pct}% institutional ownership, this stock is heavily followed by Wall Street. High institutional ownership means more professional eyes watching it — movements tend to be more deliberate.`);
+    } else if (breakdown.institutionPct > 0.5) {
+      parts.push(`${pct}% of this stock is held by institutions — a solid level of professional interest that adds credibility to the stock's trading.`);
+    } else {
+      parts.push(`Only ${pct}% is held by institutions — relatively low. This stock may be under the radar of Wall Street, which can mean more volatility but also bigger discovery potential.`);
+    }
+  }
+
+  // Insider activity
+  if (insideBuys.length > 0 && insideSells.length === 0) {
+    parts.push(`✅ Company insiders are buying shares — insiders know their own business better than anyone. Insider buying with no selling is one of the strongest bullish signals available.`);
+  } else if (insideBuys.length > insideSells.length) {
+    parts.push(`✅ More insiders are buying than selling recently. This is a positive signal — people inside the company believe the stock is undervalued or has a strong future.`);
+  } else if (insideSells.length > insideBuys.length * 2) {
+    parts.push(`⚠️ Company insiders have been selling more than buying lately. While executives often sell for personal reasons (taxes, diversification), a wave of insider selling can sometimes precede a slowdown or signal they think the stock is fully valued.`);
+  } else if (transactions.length === 0) {
+    parts.push(`No recent insider transactions on record.`);
+  } else {
+    parts.push(`Insider activity is a mixed bag — some selling, some buying — which is normal and doesn't signal anything unusual.`);
+  }
+
+  return parts;
+}
+
 // ─── CHART CONSTANTS ────────────────────────────────────────────────────────
 
 const CHART_TABS = ['Price & MAs', 'RSI', 'MACD', 'Volume'];
@@ -295,6 +351,9 @@ function StockCard({ holding }) {
   const [error,    setError]    = useState(null);
   const [activeTab, setActiveTab] = useState('Price & MAs');
   const [visibleMAs, setVisibleMAs] = useState({ ma20: true, ma50: true, ma150: true });
+  const [instData,     setInstData]     = useState(null);
+  const [instLoading,  setInstLoading]  = useState(true);
+  const [instError,    setInstError]    = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -306,6 +365,16 @@ function StockCard({ holding }) {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
+
+    setInstLoading(true);
+    setInstError(null);
+    fetchInstitutional(holding.symbol)
+      .then(data => {
+        if (!data || data.error) throw new Error(data?.error || 'No data');
+        setInstData(data);
+      })
+      .catch(e => setInstError(e.message))
+      .finally(() => setInstLoading(false));
   }, [holding.symbol]);
 
   const { chartData, sigData } = useMemo(() => {
@@ -559,6 +628,135 @@ function StockCard({ holding }) {
               ))}
             </div>
           )}
+
+          {/* ── Institutional Activity ── */}
+          <div className="ta-inst-section">
+            <div className="ta-inst-header">
+              <Building2 size={15} />
+              <span>Big Money &amp; Institutional Activity</span>
+            </div>
+
+            {instLoading && (
+              <div className="ta-inst-loading">
+                <Activity size={14} className="ta-spinner" style={{ flexShrink: 0 }} />
+                <span>Loading institutional data…</span>
+              </div>
+            )}
+
+            {instError && !instLoading && (
+              <div className="ta-inst-unavailable">
+                <AlertTriangle size={14} />
+                <span>Institutional data not available for this symbol.</span>
+              </div>
+            )}
+
+            {!instLoading && !instError && instData && (
+              <>
+                {/* ── Overview stats ── */}
+                <div className="ta-inst-stats">
+                  {instData.breakdown.institutionPct != null && (
+                    <div className="ta-inst-stat">
+                      <div className="ta-inst-stat-val">
+                        {(instData.breakdown.institutionPct * 100).toFixed(1)}%
+                      </div>
+                      <div className="ta-inst-stat-label">Held by Institutions</div>
+                    </div>
+                  )}
+                  {instData.breakdown.institutionCount != null && (
+                    <div className="ta-inst-stat">
+                      <div className="ta-inst-stat-val">
+                        {instData.breakdown.institutionCount.toLocaleString()}
+                      </div>
+                      <div className="ta-inst-stat-label">Institutional Investors</div>
+                    </div>
+                  )}
+                  {instData.breakdown.insiderPct != null && (
+                    <div className="ta-inst-stat">
+                      <div className="ta-inst-stat-val">
+                        {(instData.breakdown.insiderPct * 100).toFixed(2)}%
+                      </div>
+                      <div className="ta-inst-stat-label">Insider Ownership</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Top Institutional Holders ── */}
+                {instData.topHolders.length > 0 && (
+                  <div className="ta-holders">
+                    <div className="ta-holders-title">
+                      <UserCheck size={13} /> Top Institutional Holders
+                    </div>
+                    {instData.topHolders.map((h, i) => {
+                      const chg = h.pctChange;
+                      const isUp   = chg != null && chg >  0.001;
+                      const isDown = chg != null && chg < -0.001;
+                      const isBig  = Math.abs(chg ?? 0) > 0.05;
+                      return (
+                        <div key={i} className={`ta-holder-row ${isBig ? 'highlight' : ''}`}>
+                          <div className="ta-holder-name">
+                            {isBig && <span className="ta-holder-fire">🔥</span>}
+                            {h.name}
+                          </div>
+                          <div className="ta-holder-right">
+                            <span className="ta-holder-pct">
+                              {h.pctHeld != null ? (h.pctHeld * 100).toFixed(2) + '%' : '—'}
+                            </span>
+                            {chg != null && (
+                              <span className={`ta-holder-change ${isUp ? 'up' : isDown ? 'down' : 'flat'}`}>
+                                {isUp   ? `▲ +${(chg * 100).toFixed(2)}%`
+                                : isDown ? `▼ ${(chg * 100).toFixed(2)}%`
+                                :          '→ No change'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {instData.topHolders[0]?.reportDate && (
+                      <div className="ta-holders-note">
+                        Last reported: {instData.topHolders[0].reportDate} (SEC 13F filing)
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Insider Transactions ── */}
+                {instData.transactions.length > 0 && (
+                  <div className="ta-insider">
+                    <div className="ta-insider-title">
+                      <UserCheck size={13} /> Recent Insider Transactions
+                    </div>
+                    {instData.transactions.map((t, i) => (
+                      <div key={i} className={`ta-insider-row ${t.code === 'P' ? 'buy' : 'sell'}`}>
+                        <div className="ta-insider-left">
+                          <span className="ta-insider-name">{t.name}</span>
+                          <span className="ta-insider-role">{t.role}</span>
+                        </div>
+                        <div className="ta-insider-right">
+                          <span className={`ta-insider-badge ${t.code === 'P' ? 'buy' : 'sell'}`}>
+                            {t.code === 'P' ? '↑ BUY' : '↓ SELL'}
+                          </span>
+                          {t.shares != null && (
+                            <span className="ta-insider-shares">
+                              {t.shares.toLocaleString()} shares
+                            </span>
+                          )}
+                          {t.date && <span className="ta-insider-date">{t.date}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Plain English Interpretation ── */}
+                <div className="ta-inst-interp">
+                  {buildInstInterpretation(instData).map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
           {/* ── Plain Language Summary ── */}
           {plainSummary && (
