@@ -6,77 +6,129 @@
   gap: 1.5rem;
 }
 
-.ta-stock-grid {
+/* ─── ACCORDION ───────────────────────────────────────────────────────────── */
+
+.ta-accordion {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.6rem;
 }
 
-/* ─── CARD HEADER ─────────────────────────────────────────────────────────── */
-
-.ta-card {
-  overflow: visible;
+.ta-acc-item {
+  padding: 0;
+  overflow: hidden;
+  transition: box-shadow 0.25s ease;
 }
 
-.ta-card-header {
+.ta-acc-item.open {
+  box-shadow: 0 0 0 1px var(--accent-color), var(--glass-shadow);
+}
+
+/* Trigger row */
+.ta-acc-trigger {
+  width: 100%;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: left;
   flex-wrap: wrap;
+  transition: background 0.15s ease;
+}
+
+.ta-acc-trigger:hover {
+  background: rgba(139, 92, 246, 0.05);
+}
+
+.ta-acc-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ta-acc-right {
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
-  margin-bottom: 1.25rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.ta-card-left {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.ta-card-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
-}
-
-.ta-symbol {
-  font-size: 1.45rem;
+.ta-acc-symbol {
+  font-size: 1.3rem;
   font-weight: 800;
   letter-spacing: 0.03em;
-  color: var(--text-primary);
+  line-height: 1;
 }
 
-.ta-name {
-  font-size: 0.85rem;
+.ta-acc-name {
+  font-size: 0.82rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
 
-.ta-holding-info {
-  font-size: 0.75rem;
+.ta-acc-info {
+  font-size: 0.72rem;
   color: var(--text-secondary);
-  opacity: 0.7;
-  margin-top: 0.1rem;
+  opacity: 0.65;
 }
 
-.ta-price {
-  font-size: 1.15rem;
+.ta-acc-price {
+  font-size: 1.05rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: var(--text-primary);
+  gap: 0.4rem;
 }
 
 .ta-change {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
 }
 .ta-change.up   { color: var(--success-color); }
 .ta-change.down { color: var(--danger-color);  }
+
+/* Chevron */
+.ta-acc-chevron {
+  color: var(--text-secondary);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+.ta-acc-chevron.open { transform: rotate(180deg); }
+
+/* Smooth expand/collapse using CSS grid trick */
+.ta-acc-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ta-acc-body.open {
+  grid-template-rows: 1fr;
+}
+
+.ta-acc-body-inner {
+  overflow: hidden;
+}
+
+/* StockCard content inside accordion */
+.ta-card-body {
+  padding: 0 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  border-top: 1px solid var(--panel-border);
+  padding-top: 1.25rem;
+  margin-top: 0;
+}
 
 /* ─── OVERALL SIGNAL BADGE ────────────────────────────────────────────────── */
 
@@ -632,8 +684,10 @@
 /* ─── MOBILE ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  .ta-symbol          { font-size: 1.2rem; }
-  .ta-price           { font-size: 1rem; }
+  .ta-acc-symbol      { font-size: 1.1rem; }
+  .ta-acc-price       { font-size: 0.95rem; }
+  .ta-acc-trigger     { padding: 0.85rem 1rem; gap: 0.5rem; }
+  .ta-card-body       { padding: 0 1rem 1rem; }
   .ta-tab             { padding: 0.32rem 0.65rem; font-size: 0.75rem; }
   .ta-badge           { min-width: 82px; }
   .ta-plain-actions   { grid-template-columns: 1fr; }
@@ -642,4 +696,5 @@
   .ta-holder-row      { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
   .ta-holder-right    { width: 100%; justify-content: flex-start; }
   .ta-insider-row     { flex-direction: column; align-items: flex-start; }
+  .ta-acc-right       { gap: 0.5rem; }
 }

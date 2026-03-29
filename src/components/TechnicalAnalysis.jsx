@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   ComposedChart, Line, Bar, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine, Cell
 } from 'recharts'
-import { TrendingUp, BarChart2, Activity, Building2, UserCheck, AlertTriangle } from 'lucide-react'
+import { TrendingUp, BarChart2, Activity, Building2, UserCheck, AlertTriangle, ChevronDown } from 'lucide-react'
 import { usePortfolio } from '../context/PortfolioContext'
 import { fetchTechnical, fetchInstitutional } from '../data/api'
 import './TechnicalAnalysis.css'
@@ -345,7 +345,7 @@ const axisStyle = { fontSize: 10, fill: '#94a3b8' };
 
 // ─── STOCK CARD ─────────────────────────────────────────────────────────────
 
-function StockCard({ holding }) {
+function StockCard({ holding, isActive, onSignalReady }) {
   const [ohlcv,    setOhlcv]    = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -354,8 +354,13 @@ function StockCard({ holding }) {
   const [instData,     setInstData]     = useState(null);
   const [instLoading,  setInstLoading]  = useState(true);
   const [instError,    setInstError]    = useState(null);
+  const hasFetched = useRef(false);
 
+  // Only fetch data on first open — stays cached if user closes and reopens
   useEffect(() => {
+    if (!isActive || hasFetched.current) return;
+    hasFetched.current = true;
+
     setLoading(true);
     setError(null);
     fetchTechnical(holding.symbol)
@@ -375,7 +380,8 @@ function StockCard({ holding }) {
       })
       .catch(e => setInstError(e.message))
       .finally(() => setInstLoading(false));
-  }, [holding.symbol]);
+  }, [isActive, holding.symbol]);
+
 
   const { chartData, sigData } = useMemo(() => {
     if (ohlcv.length < 30) return { chartData: [], sigData: null };
@@ -398,6 +404,14 @@ function StockCard({ holding }) {
     }));
     return { chartData: cd, sigData: { ...rest, computed } };
   }, [ohlcv]);
+
+  // Bubble overall signal up to the accordion trigger row once computed
+  useEffect(() => {
+    if (sigData && onSignalReady) {
+      onSignalReady(holding.symbol, { overall: sigData.overall, overallType: sigData.overallType });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sigData]);
 
   const gradId    = `grad-${holding.symbol.replace(/[^a-z0-9]/gi, '_')}`;
   const price     = holding.currentPrice || holding.avgPrice;
@@ -568,27 +582,7 @@ function StockCard({ holding }) {
     : 'ta-overall hold';
 
   return (
-    <div className="glass-panel ta-card">
-
-      {/* ── Card Header ── */}
-      <div className="ta-card-header">
-        <div className="ta-card-left">
-          <div className="ta-symbol">{holding.symbol}</div>
-          <div className="ta-name">{holding.name || holding.symbol}</div>
-          <div className="ta-holding-info">
-            {holding.amount} shares · avg {sym}{holding.avgPrice?.toFixed(2)}
-          </div>
-        </div>
-        <div className="ta-card-right">
-          <div className="ta-price">
-            {sym}{price?.toFixed(2)}
-            <span className={`ta-change ${isUp ? 'up' : 'down'}`}>
-              {isUp ? '▲' : '▼'} {Math.abs(changePct).toFixed(2)}%
-            </span>
-          </div>
-          {sigData && <div className={overallClass}>{sigData.overall}</div>}
-        </div>
-      </div>
+    <div className="ta-card-body">
 
       {loading && (
         <div className="ta-loading">
@@ -804,17 +798,46 @@ function StockCard({ holding }) {
   );
 }
 
-// ─── PAGE ────────────────────────────────────────────────────────────────────
+// ─── PAGE (accordion) ────────────────────────────────────────────────────────
+
+const OVERALL_CLASS = {
+  'strong-buy':  'ta-overall strong-buy',
+  'buy':         'ta-overall buy',
+  'sell':        'ta-overall sell',
+  'strong-sell': 'ta-overall strong-sell',
+  'hold':        'ta-overall hold',
+};
 
 export default function TechnicalAnalysis() {
   const { holdings } = usePortfolio();
+
+  // Which symbols are currently open
+  const [openSet,    setOpenSet]    = useState(new Set());
+  // Which have been opened at least once (keep them mounted = data stays cached)
+  const [mountedSet, setMountedSet] = useState(new Set());
+  // Signal map: symbol → { overall, overallType } once StockCard computes it
+  const [signals,    setSignals]    = useState({});
+
+  const toggle = symbol => {
+    setOpenSet(prev => {
+      const next = new Set(prev);
+      if (next.has(symbol)) { next.delete(symbol); }
+      else                  { next.add(symbol); }
+      return next;
+    });
+    // Mount on first open
+    setMountedSet(prev => new Set([...prev, symbol]));
+  };
+
+  const handleSignalReady = (symbol, info) =>
+    setSignals(prev => ({ ...prev, [symbol]: info }));
 
   return (
     <div className="ta-page">
       <div className="portfolio-header">
         <h2>Technical Analysis</h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
-          Deep per-stock review — RSI · MACD · Bollinger Bands · MA 20/50/150 · Plain English breakdown.
+          Click a stock to expand its full technical review.
         </p>
       </div>
 
@@ -824,8 +847,61 @@ export default function TechnicalAnalysis() {
           <p>Add stocks to your portfolio to unlock technical analysis.</p>
         </div>
       ) : (
-        <div className="ta-stock-grid">
-          {holdings.map(h => <StockCard key={h.symbol} holding={h} />)}
+        <div className="ta-accordion">
+          {holdings.map(h => {
+            const isOpen   = openSet.has(h.symbol);
+            const isMounted = mountedSet.has(h.symbol);
+            const sig      = signals[h.symbol];
+            const price    = h.currentPrice || h.avgPrice;
+            const sym      = h.currencySymbol || '$';
+            const changePct = h.currentPrice && h.avgPrice
+              ? ((h.currentPrice - h.avgPrice) / h.avgPrice * 100) : 0;
+            const isUp = changePct >= 0;
+
+            return (
+              <div key={h.symbol} className={`ta-acc-item glass-panel ${isOpen ? 'open' : ''}`}>
+
+                {/* ── Trigger row (always visible) ── */}
+                <button className="ta-acc-trigger" onClick={() => toggle(h.symbol)}>
+                  <div className="ta-acc-left">
+                    <span className="ta-acc-symbol">{h.symbol}</span>
+                    <span className="ta-acc-name">{h.name || h.symbol}</span>
+                    <span className="ta-acc-info">
+                      {h.amount} shares · avg {sym}{h.avgPrice?.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="ta-acc-right">
+                    <div className="ta-acc-price">
+                      {sym}{price?.toFixed(2)}
+                      <span className={`ta-change ${isUp ? 'up' : 'down'}`}>
+                        {isUp ? '▲' : '▼'} {Math.abs(changePct).toFixed(2)}%
+                      </span>
+                    </div>
+                    {sig && (
+                      <div className={OVERALL_CLASS[sig.overallType] || 'ta-overall hold'}>
+                        {sig.overall}
+                      </div>
+                    )}
+                    <ChevronDown size={18} className={`ta-acc-chevron ${isOpen ? 'open' : ''}`} />
+                  </div>
+                </button>
+
+                {/* ── Expandable body — mounted once, hidden via CSS ── */}
+                <div className={`ta-acc-body ${isOpen ? 'open' : ''}`}>
+                  <div className="ta-acc-body-inner">
+                    {isMounted && (
+                      <StockCard
+                        holding={h}
+                        isActive={isOpen}
+                        onSignalReady={handleSignalReady}
+                      />
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
