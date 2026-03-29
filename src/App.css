@@ -96,3 +96,37 @@
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent-color), #3b82f6);
 }
+
+/* =====================
+   MOBILE — App Layout
+   ===================== */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .main-content {
+    padding: 1rem;
+    width: 100%;
+    max-width: 100%;
+    gap: 1rem;
+    box-sizing: border-box;
+  }
+
+  .header {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+
+  .header h1 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+
+  .header-user {
+    gap: 0.5rem;
+  }
+}

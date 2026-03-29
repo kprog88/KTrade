@@ -99,9 +99,8 @@
 
 .momentum-tooltip {
   position: absolute;
-  bottom: 110%;
-  left: 50%;
-  transform: translateX(-50%) translateY(15px) scale(0.9);
+  top: 105%;
+  left: 0;
   width: 220px;
   background: var(--bg-color);
   border: 1px solid var(--accent-color);
@@ -116,23 +115,24 @@
   font-size: 0.85rem;
   line-height: 1.5;
   color: var(--text-primary);
+  transform: translateY(10px) scale(0.9);
 }
 
 .momentum-tooltip::after {
   content: '';
   position: absolute;
-  top: 100%;
-  left: 50%;
+  bottom: 100%;
+  left: 24px;
   margin-left: -8px;
   border-width: 8px;
   border-style: solid;
-  border-color: var(--accent-color) transparent transparent transparent;
+  border-color: transparent transparent var(--accent-color) transparent;
 }
 
 .momentum-card:hover .momentum-tooltip {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateY(0) scale(1);
 }
 
 /* =====================
@@ -144,6 +144,11 @@
     gap: 1rem;
   }
 
+  /* All grid children go full width on mobile */
+  .dashboard-grid > * {
+    grid-column: 1 / -1 !important;
+  }
+
   .holdings-panel,
   .ai-panel,
   .portfolio-overview {
@@ -151,10 +156,16 @@
   }
 
   .metric-value {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 
   .momentum-tooltip {
     display: none;
+  }
+
+  /* Momentum cards: slightly narrower on mobile for better scroll */
+  .momentum-card {
+    flex: 0 0 160px !important;
+    min-width: 160px;
   }
 }

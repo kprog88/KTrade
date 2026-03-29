@@ -16,12 +16,8 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
 
-  // Use screen.width (real hardware size) — immune to desktop-mode UA spoofing
-  const checkMobile = () => {
-    const isSmallScreen = window.screen.width <= 900;
-    const isTouch = navigator.maxTouchPoints > 0;
-    return isSmallScreen && isTouch;
-  };
+  // Use window.innerWidth (CSS pixels) — respects viewport meta tag on all devices
+  const checkMobile = () => window.innerWidth <= 768;
 
   const [isMobile, setIsMobile] = useState(checkMobile);
 
@@ -30,7 +26,7 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(checkMobile());
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -80,7 +76,7 @@ function App() {
         </aside>
       )}
 
-      <main className="main-content" style={isMobile ? { paddingBottom: '80px', maxWidth: '100%', width: '100%' } : {}}>
+      <main className="main-content" style={isMobile ? { paddingBottom: '80px', maxWidth: '100%', width: '100%', padding: '1rem', paddingBottom: '80px' } : {}}>
         <header className="header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {isMobile && <Activity size={22} color="var(--accent-color)" />}
@@ -137,7 +133,7 @@ function App() {
         </PortfolioProvider>
 
         <footer style={{ textAlign: 'center', padding: '1rem', marginTop: 'auto', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-          &copy; {new Date().getFullYear()} All rights reserved to Alex Katzevich
+          &copy; {new Date().getFullYear()} KTrade — Alex Katzevich
         </footer>
       </main>
 

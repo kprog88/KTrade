@@ -4,7 +4,6 @@
   gap: 1.5rem;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
 .portfolio-header {
@@ -90,7 +89,6 @@
 .portfolio-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 500px;
 }
 
 .portfolio-table th {
@@ -135,7 +133,38 @@
 @media (max-width: 768px) {
   .portfolio-table th,
   .portfolio-table td {
-    padding: 0.6rem 0.5rem;
+    padding: 0.6rem 0.4rem;
     font-size: 0.75rem;
+  }
+
+  /* Hide less important columns on mobile */
+  .portfolio-table th:nth-child(2),
+  .portfolio-table td:nth-child(2),
+  .portfolio-table th:nth-child(3),
+  .portfolio-table td:nth-child(3) {
+    display: none;
+  }
+
+  .portfolio-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .portfolio-header .btn-primary {
+    width: 100%;
+    text-align: center;
+  }
+
+  .form-group-row {
+    flex-direction: column;
+  }
+
+  .form-group {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .table-container {
+    overflow-x: visible;
   }
 }

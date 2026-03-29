@@ -115,13 +115,13 @@ export default function Watchlist() {
 
   return (
     <div className="portfolio-container">
-      <div className="portfolio-header" style={{ position: 'relative', zIndex: 1000 }}>
+      <div className="portfolio-header" style={{ position: 'relative', zIndex: 1000, overflow: 'visible' }}>
         <h2>Your Watchlist</h2>
-        <div style={{ display: 'flex', gap: '1rem', position: 'relative', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', position: 'relative', alignItems: 'center', flexWrap: 'wrap' }}>
           {selectedStock ? (
             <div 
               className="form-input" 
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.75rem', cursor: 'pointer', background: 'var(--panel-bg)', minWidth: '250px' }} 
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.75rem', cursor: 'pointer', background: 'var(--panel-bg)', flex: '1 1 200px' }} 
               onClick={() => setSelectedStock(null)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -144,7 +144,7 @@ export default function Watchlist() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-              style={{ minWidth: '250px' }}
+              style={{ flex: '1 1 200px' }}
             />
           )}
           
@@ -152,9 +152,9 @@ export default function Watchlist() {
             className="btn-primary" 
             onClick={handleAddToWatchlist}
             disabled={!selectedStock}
-            style={{ opacity: !selectedStock ? 0.5 : 1 }}
+            style={{ opacity: !selectedStock ? 0.5 : 1, whiteSpace: 'nowrap' }}
           >
-            Add to Watchlist
+            + Add
           </button>
 
           {showDropdown && searchQuery && !selectedStock && (
@@ -194,10 +194,10 @@ export default function Watchlist() {
           
           <button 
             className="btn-primary" 
-            style={{ marginLeft: 'auto', background: 'var(--panel-border)' }}
+            style={{ background: 'var(--panel-border)', whiteSpace: 'nowrap' }}
             onClick={() => setIsTableView(!isTableView)}
           >
-            {isTableView ? 'Grid View' : 'Table View'}
+            {isTableView ? '⊞ Grid' : '☰ Table'}
           </button>
         </div>
       </div>

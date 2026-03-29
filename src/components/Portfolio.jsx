@@ -97,7 +97,7 @@ export default function Portfolio() {
       </div>
 
       {showAddForm && (
-        <div className="glass-panel add-asset-form" style={{ position: 'relative', zIndex: 1000 }}>
+        <div className="glass-panel add-asset-form" style={{ position: 'relative', zIndex: 1000, overflow: 'visible' }}>
           <h3>Add New Asset</h3>
           <div className="form-group-row">
             <div className="form-group" style={{ position: 'relative' }}>

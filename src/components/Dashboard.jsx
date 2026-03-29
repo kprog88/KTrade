@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
   const [momentum, setMomentum] = useState([]);
   const [activePieIndex, setActivePieIndex] = useState(0);
+  const [tooltip, setTooltip] = useState(null); // { text, x, y }
 
   // Awesome Recharts Pie colors
   const COLORS = ['#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#8b5cf6', '#6366f1'];
@@ -219,12 +220,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="glass-panel" style={{ gridColumn: 'span 12', marginTop: '1.5rem' }}>
+      <div className="glass-panel" style={{ gridColumn: 'span 12', marginTop: '1.5rem', overflow: 'visible' }}>
          <h2 style={{ marginBottom: '1rem' }}>Market Opportunities</h2>
-         <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', paddingTop: '120px', marginTop: '-120px' }}>
+         <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
            {momentum.map((stock, i) => {
              const isPositive = stock.change >= 0;
-             // Procedural AI rationales
              const rationales = [
                "Algorithm breakdown shows massive institutional accumulation.",
                "Technical indicators crossing MACD zero-line for a breakout.",
@@ -234,10 +234,21 @@ export default function Dashboard() {
              const aiRationale = rationales[i % rationales.length];
              
              return (
-               <div key={i} className="glass-panel momentum-card" style={{ flex: '0 0 220px', padding: '1rem', cursor: 'default' }}>
-                 <div className="momentum-tooltip">
-                   <strong>AI Review:</strong> {aiRationale}
-                 </div>
+               <div
+                 key={i}
+                 className="glass-panel momentum-card"
+                 style={{ flex: '0 0 220px', padding: '1rem', cursor: 'default' }}
+                 onMouseEnter={(e) => {
+                   const rect = e.currentTarget.getBoundingClientRect();
+                   setTooltip({
+                     text: aiRationale,
+                     x: rect.left,
+                     y: rect.top - 8, // just above the card
+                     width: rect.width,
+                   });
+                 }}
+                 onMouseLeave={() => setTooltip(null)}
+               >
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <img 
@@ -261,6 +272,29 @@ export default function Dashboard() {
            })}
          </div>
       </div>
+
+      {/* Fixed tooltip — always above everything, unaffected by scroll/overflow */}
+      {tooltip && (
+        <div style={{
+          position: 'fixed',
+          left: tooltip.x,
+          top: tooltip.y,
+          transform: 'translateY(-100%)',
+          width: Math.max(tooltip.width, 220),
+          zIndex: 99999,
+          background: 'var(--bg-color)',
+          border: '1px solid var(--accent-color)',
+          borderRadius: '12px',
+          padding: '0.85rem 1rem',
+          fontSize: '0.85rem',
+          lineHeight: '1.5',
+          color: 'var(--text-primary)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.7)',
+          pointerEvents: 'none',
+        }}>
+          <strong style={{ color: 'var(--accent-color)' }}>✦ AI Review:</strong> {tooltip.text}
+        </div>
+      )}
     </div>
   )
 }
