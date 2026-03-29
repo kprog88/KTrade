@@ -37,10 +37,11 @@ const TOPICS_BY_LEVEL = [
 ];
 
 export default function Learning() {
-  const [query, setQuery]   = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError]   = useState(null);
+  const [query, setQuery]       = useState('');
+  const [activeChip, setActiveChip] = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [result, setResult]     = useState(null);
+  const [error, setError]       = useState(null);
   const resultRef = useRef(null);
 
   const search = useCallback(async (q) => {
@@ -60,10 +61,20 @@ export default function Learning() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setActiveChip(null);
     search(query);
   };
 
   const handleChip = (topic) => {
+    // Toggle: clicking the active chip collapses the result
+    if (activeChip === topic) {
+      setActiveChip(null);
+      setResult(null);
+      setError(null);
+      setQuery('');
+      return;
+    }
+    setActiveChip(topic);
     setQuery(topic);
     search(topic);
   };
@@ -122,8 +133,12 @@ export default function Learning() {
             </div>
             <div className="learn-chips">
               {topics.map(t => (
-                <button key={t} className="learn-chip" onClick={() => handleChip(t)}>
-                  {t} <ChevronRight size={12} />
+                <button
+                  key={t}
+                  className={`learn-chip${activeChip === t ? ' active' : ''}`}
+                  onClick={() => handleChip(t)}
+                >
+                  {t} <ChevronRight size={12} className={`learn-chip-arrow${activeChip === t ? ' open' : ''}`} />
                 </button>
               ))}
             </div>

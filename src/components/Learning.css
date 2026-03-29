@@ -297,6 +297,20 @@
   border-color: var(--accent-color);
 }
 
+.learn-chip.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--text-primary);
+  border-color: var(--accent-color);
+}
+
+.learn-chip-arrow {
+  transition: transform 0.2s;
+}
+
+.learn-chip-arrow.open {
+  transform: rotate(90deg);
+}
+
 /* Mobile */
 @media (max-width: 600px) {
   .learn-result-title {
