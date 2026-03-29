@@ -58,6 +58,17 @@ export const fetchMomentum = async () => {
   }
 };
 
+export const fetchTechnical = async (symbol) => {
+  try {
+    const res = await fetch(`/api/technical?symbol=${encodeURIComponent(symbol)}`);
+    if (!res.ok) throw new Error('Failed to fetch technical data');
+    return await res.json();
+  } catch (error) {
+    console.error(`Error fetching technical data for ${symbol}:`, error);
+    return null;
+  }
+};
+
 export const fetchExchangeRate = async (currency) => {
   try {
     const res = await fetch(`/api/exchange-rate?currency=${currency}`);

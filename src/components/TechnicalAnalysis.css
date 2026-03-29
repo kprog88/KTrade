@@ -1,0 +1,251 @@
+/* ─── PAGE LAYOUT ─────────────────────────────────────────────────────────── */
+
+.ta-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ta-stock-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ─── CARD HEADER ─────────────────────────────────────────────────────────── */
+
+.ta-card {
+  overflow: visible;
+}
+
+.ta-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.ta-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ta-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.ta-symbol {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--text-primary);
+}
+
+.ta-name {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ta-holding-info {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-top: 0.1rem;
+}
+
+.ta-price {
+  font-size: 1.15rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+}
+
+.ta-change {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.ta-change.up   { color: var(--success-color); }
+.ta-change.down { color: var(--danger-color);  }
+
+/* ─── OVERALL SIGNAL BADGE ────────────────────────────────────────────────── */
+
+.ta-overall {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  padding: 0.3rem 0.85rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ta-overall.strong-buy  { background: rgba(16,185,129,0.18); color: #10b981; border: 1px solid rgba(16,185,129,0.4); }
+.ta-overall.buy         { background: rgba(16,185,129,0.1);  color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+.ta-overall.sell        { background: rgba(239,68,68,0.1);   color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+.ta-overall.strong-sell { background: rgba(239,68,68,0.18);  color: #ef4444; border: 1px solid rgba(239,68,68,0.4); }
+.ta-overall.hold        { background: rgba(245,158,11,0.1);  color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+
+/* ─── CHART TABS ──────────────────────────────────────────────────────────── */
+
+.ta-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.ta-tab {
+  padding: 0.38rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: inherit;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.ta-tab:hover {
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.ta-tab.active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* ─── CHART AREA ──────────────────────────────────────────────────────────── */
+
+.ta-chart-area {
+  margin-bottom: 1.25rem;
+  /* Prevent chart overflow from clipping */
+  overflow: visible;
+}
+
+/* ─── SIGNAL BADGES ───────────────────────────────────────────────────────── */
+
+.ta-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.ta-badge {
+  display: flex;
+  flex-direction: column;
+  padding: 0.38rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  min-width: 95px;
+}
+
+.ta-badge-name {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin-bottom: 0.15rem;
+}
+
+.ta-badge-label {
+  font-size: 0.79rem;
+  font-weight: 600;
+}
+
+.ta-badge.buy          { background: rgba(16,185,129,0.1);   border-color: rgba(16,185,129,0.25); color: #10b981; }
+.ta-badge.sell         { background: rgba(239,68,68,0.1);    border-color: rgba(239,68,68,0.25);  color: #ef4444; }
+.ta-badge.neutral-buy  { background: rgba(59,130,246,0.1);   border-color: rgba(59,130,246,0.2);  color: #93c5fd; }
+.ta-badge.neutral-sell { background: rgba(245,158,11,0.1);   border-color: rgba(245,158,11,0.2);  color: #fcd34d; }
+.ta-badge.neutral      { background: rgba(148,163,184,0.07); border-color: rgba(148,163,184,0.15); color: #94a3b8; }
+.ta-badge.strong-vol   { background: rgba(139,92,246,0.1);   border-color: rgba(139,92,246,0.25); color: #c4b5fd; }
+
+/* ─── ANALYST SUGGESTION ──────────────────────────────────────────────────── */
+
+.ta-suggestion {
+  background: rgba(139, 92, 246, 0.055);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.ta-suggestion-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.65rem;
+}
+
+.ta-suggestion p {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* ─── LOADING / ERROR ─────────────────────────────────────────────────────── */
+
+.ta-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.ta-spinner {
+  color: var(--accent-color);
+  animation: ta-spin 1.1s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes ta-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ta-error {
+  padding: 1.25rem;
+  color: var(--danger-color);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* ─── LIGHT THEME OVERRIDES ───────────────────────────────────────────────── */
+
+[data-theme='light'] .ta-suggestion {
+  background: rgba(79, 70, 229, 0.04);
+  border-color: rgba(79, 70, 229, 0.18);
+}
+
+/* ─── MOBILE ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .ta-symbol    { font-size: 1.2rem; }
+  .ta-price     { font-size: 1rem; }
+  .ta-tab       { padding: 0.32rem 0.65rem; font-size: 0.75rem; }
+  .ta-badge     { min-width: 82px; }
+  .ta-suggestion p { font-size: 0.84rem; }
+}
