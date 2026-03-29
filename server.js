@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import learnHandler from './api/learn.js';
 
 const app = express();
 app.use(cors());
@@ -319,6 +320,9 @@ app.get('/api/exchange-rate', async (req, res) => {
     res.json({ rate: 1 }); // safe fallback
   }
 });
+
+// Academy / Learn
+app.get('/api/learn', learnHandler);
 
 const PORT = 3001;
 app.listen(PORT, () => {

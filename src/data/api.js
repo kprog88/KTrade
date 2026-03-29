@@ -80,6 +80,17 @@ export const fetchTechnical = async (symbol) => {
   }
 };
 
+export const fetchLearn = async (query) => {
+  try {
+    const res = await fetch(`/api/learn?q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error('Failed');
+    return await res.json();
+  } catch (error) {
+    console.error('Learn fetch error:', error);
+    return null;
+  }
+};
+
 export const fetchExchangeRate = async (currency) => {
   try {
     const res = await fetch(`/api/exchange-rate?currency=${currency}`);
