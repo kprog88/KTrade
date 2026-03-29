@@ -1,56 +1,114 @@
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+function buildPortfolioSummary(holdings) {
+  const totalValue = holdings.reduce((sum, h) => {
+    const price = h.currentPrice || h.avgPrice;
+    return sum + price * h.amount;
+  }, 0);
+
+  const rows = holdings
+    .map(h => {
+      const price  = h.currentPrice || h.avgPrice;
+      const value  = price * h.amount;
+      const pnlPct = h.avgPrice > 0 ? ((price - h.avgPrice) / h.avgPrice) * 100 : 0;
+      const weight = totalValue > 0 ? (value / totalValue) * 100 : 0;
+      return {
+        symbol:   h.symbol,
+        name:     h.name || h.symbol,
+        shares:   h.amount,
+        avgCost:  h.avgPrice.toFixed(2),
+        current:  price.toFixed(2),
+        pnlPct:   pnlPct.toFixed(1),
+        value:    value.toFixed(2),
+        weightPct: weight.toFixed(1),
+      };
+    })
+    .sort((a, b) => parseFloat(b.value) - parseFloat(a.value));
+
+  const totalCost = holdings.reduce((sum, h) => sum + h.avgPrice * h.amount, 0);
+  const totalPnlPct = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0;
+
+  return { rows, totalValue: totalValue.toFixed(2), totalPnlPct: totalPnlPct.toFixed(1) };
+}
+
+function buildPrompt({ rows, totalValue, totalPnlPct }) {
+  const table = rows.map(r =>
+    `• ${r.symbol} (${r.name}): ${r.shares} shares @ avg $${r.avgCost} → now $${r.current} | P&L: ${r.pnlPct}% | Position value: $${r.value} | Weight: ${r.weightPct}%`
+  ).join('\n');
+
+  const today = new Date().toISOString().split('T')[0];
+
+  return `You are a senior portfolio manager and experienced stock analyst with 30 years on Wall Street. Today is ${today}.
+
+Here is the investor's current portfolio (total value: $${totalValue}, overall P&L: ${totalPnlPct}%):
+
+${table}
+
+Analyze this portfolio like a real professional. Consider:
+- Current macroeconomic environment (interest rates, sector trends, geopolitical risks as of today)
+- Concentration risk and diversification gaps
+- Which positions to hold, add to, trim, or exit — and why
+- Any rebalancing or new category to consider
+
+Respond ONLY with a valid JSON object in exactly this format (no markdown, no code fences):
+{
+  "summary": "2-3 sentence honest assessment of the overall portfolio health and strategy",
+  "actions": [
+    {
+      "symbol": "TICKER",
+      "action": "HOLD|ADD|TRIM|EXIT",
+      "rationale": "One clear sentence explaining why"
+    }
+  ],
+  "topRisk": "The single biggest risk facing this portfolio right now (1 sentence)",
+  "suggestion": "One actionable portfolio-level improvement to consider (1-2 sentences)"
+}
+
+Be direct, specific, and honest. Use real market knowledge. Do not be generic.`;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-  
+
   try {
     const { holdings } = req.body;
-    let analysis = '';
-    let recommendation = '';
 
     if (!holdings || holdings.length === 0) {
-      analysis = "Your portfolio is currently empty. While cash provides a safe harbor during geopolitical uncertainty, allocating capital to high-momentum tech or defensive consumer staples is advised for wealth generation.";
-      recommendation = "Begin constructing your portfolio by exploring the Market Opportunities scanner below. Look for strong volume patterns in semiconductors or software.";
-    } else {
-      const sortedByValue = [...holdings].sort((a,b) => (b.amount*(b.currentPrice||b.avgPrice)) - (a.amount*(a.currentPrice||a.avgPrice)));
-      const topHolding = sortedByValue[0];
-      
-      const itemsWithChange = holdings.map(h => {
-        const p = h.currentPrice || h.avgPrice;
-        const cp = h.avgPrice > 0 ? ((p - h.avgPrice) / h.avgPrice) * 100 : 0;
-        return { ...h, cp };
+      return res.json({
+        summary: "Your portfolio is empty. Building a strong foundation starts with diversification across at least 3-5 sectors.",
+        actions: [],
+        topRisk: "100% cash means missing compounding returns over time.",
+        suggestion: "Start with a broad-market ETF like VTI or SPY to establish a core position, then add individual stocks selectively.",
       });
-      const topGainer = [...itemsWithChange].sort((a,b) => b.cp - a.cp)[0];
-      const topLoser = [...itemsWithChange].sort((a,b) => a.cp - b.cp)[0];
-
-      const r = Math.random();
-      
-      if (r < 0.33) {
-        const adjectives = ['massive', 'significant', 'heavy', 'strategic', 'dominant'];
-        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-        const stopPrice = ((topHolding.currentPrice || topHolding.avgPrice) * 0.92).toFixed(2);
-        
-        analysis = `Focusing on your ${adj} concentration in ${topHolding.symbol}: This single asset currently defines your portfolio's risk profile. Given current macroeconomic shifts and geopolitical friction, ${topHolding.symbol} could see amplified volatility in the coming weeks.`;
-        recommendation = `Optimal Pro Move: Configure a Trailing Stop-Loss order on ${topHolding.symbol} at $${stopPrice} (8% below the current market price). This mathematical best-practice automatically caps your downside risk at key technical support levels while relentlessly protecting your upside exposure if the momentum continues.`;
-        
-      } else if (r < 0.66 && topGainer.symbol !== topLoser.symbol) {
-        const trimPrice = ((topGainer.currentPrice || topGainer.avgPrice) * 1.05).toFixed(2);
-        const buyLimit = ((topLoser.currentPrice || topLoser.avgPrice) * 0.95).toFixed(2);
-        
-        analysis = `Your capital allocation is experiencing distinct divergence. We're observing spectacular momentum in ${topGainer.symbol} (+${topGainer.cp.toFixed(1)}%), likely riding the macro wave of sector-wide tech enthusiasm. Conversely, ${topLoser.symbol} is dragging performance due to short-term market rotations.`;
-        recommendation = `Action Plan: Execute a Limit Sell order for 25% of your ${topGainer.symbol} position at $${trimPrice} to algorithmically lock in those outsized gains. Simultaneously, consider setting a Good-Til-Cancelled (GTC) Buy Limit order on ${topLoser.symbol} at $${buyLimit} (near its 50-day moving average) to dollar-cost average efficiently into the weakness.`;
-        
-      } else {
-        const themes = ["geopolitical uncertainty in major supply chains", "shifting central bank yield curves", "AI infrastructure capital expenditure rotations"];
-        const theme = themes[Math.floor(Math.random() * themes.length)];
-        const targetHolding = topGainer ? topGainer.symbol : topHolding.symbol;
-        const dipPrice = ((topHolding.currentPrice || topHolding.avgPrice) * 0.94).toFixed(2);
-        
-        analysis = `Analyzing your entire basket of ${holdings.length} assets: Your portfolio displays a distinct growth bias. In today's active climate of ${theme}, this aggressive approach carries a high beta relative to the S&P 500.`;
-        recommendation = `Defensive Strategy: Avoid market-order purchases in this high-beta environment. The superior tactical move is deploying a GTC Buy Limit order on ${topHolding.symbol} at $${dipPrice} to automatically acquire the next 6% technical dip. Park your remaining 15% execution reserves in a high-yield sweep account.`;
-      }
     }
 
-    res.json({ analysis, recommendation });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to generate insights' });
+    const portfolioData = buildPortfolioSummary(holdings);
+    const prompt = buildPrompt(portfolioData);
+
+    const message = await client.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const raw = message.content[0].text.trim();
+
+    // Strip markdown code fences if Claude wraps in them
+    const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const parsed = JSON.parse(jsonStr);
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(parsed);
+  } catch (err) {
+    console.error('AI insights error:', err.message);
+    // Graceful fallback so the UI never breaks
+    res.json({
+      summary: "Unable to generate live AI analysis right now. Please refresh to try again.",
+      actions: [],
+      topRisk: "N/A",
+      suggestion: "Check your API configuration and try again.",
+    });
   }
 }

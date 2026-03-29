@@ -6,7 +6,7 @@ import './Dashboard.css'
 
 export default function Dashboard() {
   const { holdings } = usePortfolio();
-  const [insights, setInsights] = useState({ analysis: 'Analyzing portfolio data...', recommendation: 'Generating advice...' });
+  const [insights, setInsights] = useState(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
   const [momentum, setMomentum] = useState([]);
   const [activePieIndex, setActivePieIndex] = useState(0);
@@ -72,12 +72,9 @@ export default function Dashboard() {
 
   const loadInsights = async () => {
     setIsInsightsLoading(true);
-    setInsights({ analysis: 'Analyzing latest market structure...', recommendation: 'Formulating macroeconomic strategy...' });
-    await new Promise(resolve => setTimeout(resolve, 600));
+    setInsights(null);
     const insightData = await fetchAIInsights(holdings);
-    if (insightData) {
-      setInsights(insightData);
-    }
+    if (insightData) setInsights(insightData);
     setIsInsightsLoading(false);
   };
 
@@ -198,26 +195,81 @@ export default function Dashboard() {
       </div>
 
       <div className="glass-panel ai-panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h2>AI Pro Insights ✦</h2>
-          <button 
-            className="btn-primary" 
+          <button
+            className="btn-primary"
             style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', background: 'var(--panel-border)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isInsightsLoading ? 'default' : 'pointer' }}
             onClick={loadInsights}
             disabled={isInsightsLoading}
           >
-            {isInsightsLoading ? <span style={{ animation: 'pulse 1s infinite' }}>Analyzing...</span> : '⟳ Refresh'}
+            {isInsightsLoading ? <span style={{ animation: 'pulse 1s infinite' }}>Analyzing…</span> : '⟳ Refresh'}
           </button>
         </div>
-        <div style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-          <p>
-            <strong style={{ color: 'var(--text-primary)' }}>Macro Analysis:</strong> {insights.analysis}
-          </p>
-          <br/>
-          <p>
-            <strong style={{ color: 'var(--success-color)' }}>Recommendation:</strong> {insights.recommendation}
-          </p>
-        </div>
+
+        {isInsightsLoading && (
+          <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0', lineHeight: 2 }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem', animation: 'pulse 1.2s infinite' }}>🤖</div>
+            Consulting your portfolio with Claude AI…
+          </div>
+        )}
+
+        {!isInsightsLoading && insights && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            {/* Summary */}
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.7', borderLeft: '3px solid var(--accent-color)', paddingLeft: '0.85rem', margin: 0 }}>
+              {insights.summary}
+            </p>
+
+            {/* Per-stock actions */}
+            {insights.actions?.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.6rem' }}>
+                  Stock-by-Stock
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {insights.actions.map((a, i) => {
+                    const colors = { ADD: '#22c55e', HOLD: '#f59e0b', TRIM: '#f97316', EXIT: '#ef4444' };
+                    const bg     = { ADD: 'rgba(34,197,94,0.1)', HOLD: 'rgba(245,158,11,0.1)', TRIM: 'rgba(249,115,22,0.1)', EXIT: 'rgba(239,68,68,0.1)' };
+                    const color  = colors[a.action] || '#8b5cf6';
+                    const bgCol  = bg[a.action]    || 'rgba(139,92,246,0.1)';
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.6rem 0.75rem', background: bgCol, borderRadius: '8px', border: `1px solid ${color}33` }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.78rem', color, background: `${color}22`, border: `1px solid ${color}55`, borderRadius: '5px', padding: '0.15rem 0.45rem', flexShrink: 0, marginTop: '1px' }}>
+                          {a.action}
+                        </span>
+                        <span style={{ fontWeight: 700, color: 'var(--text-primary)', minWidth: '50px', flexShrink: 0 }}>{a.symbol}</span>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.5' }}>{a.rationale}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Risk + Suggestion */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              {insights.topRisk && (
+                <div style={{ padding: '0.75rem', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.35rem' }}>⚠ Top Risk</div>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.5' }}>{insights.topRisk}</p>
+                </div>
+              )}
+              {insights.suggestion && (
+                <div style={{ padding: '0.75rem', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.35rem' }}>💡 Suggestion</div>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.5' }}>{insights.suggestion}</p>
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {!isInsightsLoading && !insights && (
+          <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '1rem 0' }}>Click Refresh to generate AI analysis.</p>
+        )}
       </div>
 
       <div className="glass-panel" style={{ gridColumn: 'span 12', marginTop: '1.5rem', overflow: 'visible' }}>
