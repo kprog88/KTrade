@@ -177,16 +177,64 @@
 .ta-badge.neutral      { background: rgba(148,163,184,0.07); border-color: rgba(148,163,184,0.15); color: #94a3b8; }
 .ta-badge.strong-vol   { background: rgba(139,92,246,0.1);   border-color: rgba(139,92,246,0.25); color: #c4b5fd; }
 
-/* ─── ANALYST SUGGESTION ──────────────────────────────────────────────────── */
+/* ─── MA TOGGLE BUTTONS ───────────────────────────────────────────────────── */
 
-.ta-suggestion {
-  background: rgba(139, 92, 246, 0.055);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
+.ta-ma-toggles {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.ta-suggestion-header {
+.ta-ma-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: opacity 0.2s, border-color 0.2s;
+  border: 1.5px solid var(--ma-color);
+  background: transparent;
+  color: var(--ma-color);
+}
+
+.ta-ma-toggle.on {
+  background: color-mix(in srgb, var(--ma-color) 15%, transparent);
+}
+
+.ta-ma-toggle.off {
+  opacity: 0.35;
+}
+
+.ta-ma-toggle:hover {
+  opacity: 1;
+}
+
+.ta-ma-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ma-color);
+  flex-shrink: 0;
+}
+
+/* ─── PLAIN LANGUAGE SUMMARY ──────────────────────────────────────────────── */
+
+.ta-plain-summary {
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.ta-plain-header {
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -195,12 +243,106 @@
   color: var(--accent-color);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 0.65rem;
 }
 
-.ta-suggestion p {
-  font-size: 0.88rem;
-  line-height: 1.7;
+/* Headline */
+.ta-plain-headline {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+}
+
+.ta-plain-headline.bull    { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); }
+.ta-plain-headline.bear    { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.2);  }
+.ta-plain-headline.neutral { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); }
+
+.ta-plain-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ta-plain-headline.bull    .ta-plain-dot { background: #10b981; }
+.ta-plain-headline.bear    .ta-plain-dot { background: #ef4444; }
+.ta-plain-headline.neutral .ta-plain-dot { background: #f59e0b; }
+
+.ta-plain-headline p {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+/* Bullets */
+.ta-plain-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ta-plain-bullet {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+}
+
+.ta-plain-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.ta-plain-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ta-plain-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ta-plain-text {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Action advice */
+.ta-plain-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+.ta-action-block {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ta-action-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ta-action-text {
+  font-size: 0.83rem;
+  line-height: 1.6;
   color: var(--text-secondary);
 }
 
@@ -240,12 +382,20 @@
   border-color: rgba(79, 70, 229, 0.18);
 }
 
+/* ─── LIGHT THEME ─────────────────────────────────────────────────────────── */
+
+[data-theme='light'] .ta-plain-summary {
+  background: rgba(79, 70, 229, 0.03);
+  border-color: rgba(79, 70, 229, 0.15);
+}
+
 /* ─── MOBILE ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  .ta-symbol    { font-size: 1.2rem; }
-  .ta-price     { font-size: 1rem; }
-  .ta-tab       { padding: 0.32rem 0.65rem; font-size: 0.75rem; }
-  .ta-badge     { min-width: 82px; }
-  .ta-suggestion p { font-size: 0.84rem; }
+  .ta-symbol          { font-size: 1.2rem; }
+  .ta-price           { font-size: 1rem; }
+  .ta-tab             { padding: 0.32rem 0.65rem; font-size: 0.75rem; }
+  .ta-badge           { min-width: 82px; }
+  .ta-plain-actions   { grid-template-columns: 1fr; }
+  .ta-plain-text      { font-size: 0.82rem; }
 }

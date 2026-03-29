@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     if (!symbol) return res.status(400).json({ error: 'Symbol required' });
 
     const response = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=6mo`,
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`,
       { headers: { 'User-Agent': 'Mozilla/5.0' } }
     );
     const data = await response.json();
