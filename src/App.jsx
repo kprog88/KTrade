@@ -5,11 +5,12 @@ import Portfolio from './components/Portfolio'
 import Watchlist from './components/Watchlist'
 import Learning from './components/Learning'
 import TechnicalAnalysis from './components/TechnicalAnalysis'
+import Insights from './components/Insights'
 import Login from './components/Login'
 import { PortfolioProvider } from './context/PortfolioContext'
 import { useAuth } from './context/AuthContext'
 import { auth } from './firebase'
-import { Activity, BookOpen, LayoutDashboard, Briefcase, Eye, BarChart2 } from 'lucide-react'
+import { Activity, BookOpen, LayoutDashboard, Briefcase, Eye, BarChart2, BrainCircuit } from 'lucide-react'
 
 function App() {
   const { currentUser } = useAuth();
@@ -42,6 +43,7 @@ function App() {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { id: 'portfolio', label: 'Portfolio',  icon: <Briefcase size={20} /> },
+    { id: 'insights',  label: 'Insights',   icon: <BrainCircuit size={20} /> },
     { id: 'analysis',  label: 'Analysis',   icon: <BarChart2 size={20} /> },
     { id: 'watchlist', label: 'Watchlist',  icon: <Eye size={20} /> },
     { id: 'learning',  label: 'Academy',    icon: <BookOpen size={20} /> },
@@ -127,6 +129,7 @@ function App() {
         <PortfolioProvider>
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'portfolio' && <Portfolio />}
+          {activeTab === 'insights'  && <Insights />}
           {activeTab === 'analysis'  && <TechnicalAnalysis />}
           {activeTab === 'watchlist' && <Watchlist />}
           {activeTab === 'learning'  && <Learning />}
