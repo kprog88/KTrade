@@ -20,8 +20,9 @@ function App() {
   const [legalPage, setLegalPage] = useState(null); // 'terms' | 'privacy' | 'risk'
   const [theme, setTheme] = useState('dark');
 
-  // Use window.innerWidth (CSS pixels) — respects viewport meta tag on all devices
-  const checkMobile = () => window.innerWidth <= 768;
+  // Math.min(screen.width, screen.height) = the physical short side of the device.
+  // Immune to Samsung "desktop mode" which fakes window.innerWidth as 1280px.
+  const checkMobile = () => Math.min(screen.width, screen.height) <= 768;
 
   const [isMobile, setIsMobile] = useState(checkMobile);
 
