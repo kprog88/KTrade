@@ -133,7 +133,7 @@ function App() {
           <Legal page={legalPage} onBack={() => setLegalPage(null)} />
         ) : (
           <PortfolioProvider>
-            {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
+            {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} isMobile={isMobile} />}
             {activeTab === 'portfolio' && <Portfolio />}
             {activeTab === 'insights'  && <Insights />}
             {activeTab === 'analysis'  && <TechnicalAnalysis />}

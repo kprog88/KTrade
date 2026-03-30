@@ -7,7 +7,7 @@ import './Dashboard.css'
 
 const COLORS = ['#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1', '#f43f5e'];
 
-export default function Dashboard({ onNavigate }) {
+export default function Dashboard({ onNavigate, isMobile }) {
   const { holdings } = usePortfolio();
   const [momentum, setMomentum]       = useState([]);
   const [activePieIndex, setActivePieIndex] = useState(0);
@@ -86,41 +86,42 @@ export default function Dashboard({ onNavigate }) {
   };
 
   const fmt = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const metricValueStyle = isMobile ? { fontSize: '1.1rem' } : {};
 
   return (
     <div className="dashboard-grid">
 
       {/* ── Top metrics bar ── */}
-      <div className="glass-panel portfolio-overview">
+      <div className="glass-panel portfolio-overview" style={isMobile ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', alignItems: 'start' } : {}}>
         <div className="metric">
           <span className="metric-label">Total Balance</span>
-          <span className="metric-value">${fmt(metrics.totalValue)}</span>
+          <span className="metric-value" style={metricValueStyle}>${fmt(metrics.totalValue)}</span>
         </div>
         <div className="metric">
           <span className="metric-label">Total P/L</span>
-          <span className={`metric-value ${metrics.profit >= 0 ? 'trend-positive' : 'trend-negative'}`}>
+          <span className={`metric-value ${metrics.profit >= 0 ? 'trend-positive' : 'trend-negative'}`} style={metricValueStyle}>
             {metrics.profit >= 0 ? '+' : '-'}${fmt(Math.abs(metrics.profit))} ({metrics.profitPercent.toFixed(2)}%) {metrics.profit >= 0 ? '▲' : '▼'}
           </span>
         </div>
         <div className="metric">
           <span className="metric-label">Positions</span>
-          <span className="metric-value" style={{ color: 'var(--text-primary)' }}>{metrics.assetCount}</span>
+          <span className="metric-value" style={{ color: 'var(--text-primary)', ...metricValueStyle }}>{metrics.assetCount}</span>
         </div>
         <div className="metric">
-          <span className="metric-label">Best Performer</span>
+          <span className="metric-label">Best</span>
           {metrics.topGainer ? (
-            <span className="metric-value trend-positive">
+            <span className="metric-value trend-positive" style={metricValueStyle}>
               {metrics.topGainer.symbol} +{Math.abs(metrics.topGainer.pct).toFixed(1)}%
             </span>
-          ) : <span className="metric-value" style={{ color: 'var(--text-secondary)' }}>--</span>}
+          ) : <span className="metric-value" style={{ color: 'var(--text-secondary)', ...metricValueStyle }}>--</span>}
         </div>
         <div className="metric">
-          <span className="metric-label">Worst Performer</span>
+          <span className="metric-label">Worst</span>
           {metrics.topLoser ? (
-            <span className={`metric-value ${metrics.topLoser.pct >= 0 ? 'trend-positive' : 'trend-negative'}`}>
+            <span className={`metric-value ${metrics.topLoser.pct >= 0 ? 'trend-positive' : 'trend-negative'}`} style={metricValueStyle}>
               {metrics.topLoser.symbol} {metrics.topLoser.pct >= 0 ? '+' : ''}{metrics.topLoser.pct.toFixed(1)}%
             </span>
-          ) : <span className="metric-value" style={{ color: 'var(--text-secondary)' }}>--</span>}
+          ) : <span className="metric-value" style={{ color: 'var(--text-secondary)', ...metricValueStyle }}>--</span>}
         </div>
       </div>
 
@@ -129,15 +130,16 @@ export default function Dashboard({ onNavigate }) {
         <h2 style={{ marginBottom: '1rem' }}>Asset Allocation</h2>
         <div className="pie-chart-wrap">
           {metrics.pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={isMobile ? 220 : 300}>
               <PieChart>
                 <Pie
                   data={metrics.pieData}
-                  cx="50%" cy="45%"
-                  activeIndex={activePieIndex}
-                  activeShape={renderActiveShape}
-                  onMouseEnter={(_, idx) => setActivePieIndex(idx)}
-                  innerRadius={50} outerRadius={85}
+                  cx="50%" cy="50%"
+                  activeIndex={isMobile ? undefined : activePieIndex}
+                  activeShape={isMobile ? undefined : renderActiveShape}
+                  onMouseEnter={isMobile ? undefined : (_, idx) => setActivePieIndex(idx)}
+                  innerRadius={isMobile ? 45 : 60}
+                  outerRadius={isMobile ? 75 : 100}
                   dataKey="value"
                   stroke="var(--panel-bg)" strokeWidth={2}
                 >
@@ -148,11 +150,11 @@ export default function Dashboard({ onNavigate }) {
                   contentStyle={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', borderRadius: '8px' }}
                   itemStyle={{ color: 'var(--text-primary)' }}
                 />
-                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: 'var(--text-primary)' }} />
+                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: 'var(--text-primary)', fontSize: isMobile ? '0.72rem' : '0.85rem' }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ width: '100%', height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+            <div style={{ width: '100%', height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
               Add assets to view allocation.
             </div>
           )}
