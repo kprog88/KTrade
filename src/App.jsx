@@ -20,10 +20,8 @@ function App() {
   const [legalPage, setLegalPage] = useState(null); // 'terms' | 'privacy' | 'risk'
   const [theme, setTheme] = useState('dark');
 
-  // navigator.maxTouchPoints > 0 = hardware touch capability.
-  // Cannot be faked by Samsung "desktop mode" (it would break touch interaction).
-  // screen.width <= 1200 excludes touch-screen laptops/large tablets from mobile layout.
-  const checkMobile = () => navigator.maxTouchPoints > 0 && screen.width <= 1200;
+  // navigator.maxTouchPoints > 0 = hardware touch. Samsung cannot fake this.
+  const checkMobile = () => navigator.maxTouchPoints > 0;
 
   const [isMobile, setIsMobile] = useState(checkMobile);
 
