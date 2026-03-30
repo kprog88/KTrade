@@ -1,7 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 function buildPortfolioSummary(holdings) {
   const totalValue = holdings.reduce((sum, h) => {
     const price = h.currentPrice || h.avgPrice;
@@ -87,6 +85,7 @@ export default async function handler(req, res) {
     const portfolioData = buildPortfolioSummary(holdings);
     const prompt = buildPrompt(portfolioData);
 
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
       model: 'claude-opus-4-6',
       max_tokens: 1024,
@@ -102,13 +101,12 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     res.json(parsed);
   } catch (err) {
-    console.error('AI insights error:', err.message);
-    // Graceful fallback so the UI never breaks
+    console.error('AI insights error:', err.message, err.status ?? '');
     res.json({
-      summary: "Unable to generate live AI analysis right now. Please refresh to try again.",
+      summary: `AI error: ${err.message}`,
       actions: [],
-      topRisk: "N/A",
-      suggestion: "Check your API configuration and try again.",
+      topRisk: "See server console for details.",
+      suggestion: "Check ANTHROPIC_API_KEY is set and the server was restarted.",
     });
   }
 }
