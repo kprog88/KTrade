@@ -1,0 +1,224 @@
+/* ── Legal pages ───────────────────────────────────────────────────────────── */
+
+.legal-page {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 0 4rem;
+}
+
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  margin-bottom: 1.5rem;
+  font-family: inherit;
+  transition: color 0.15s;
+}
+
+.legal-back:hover {
+  color: var(--text-primary);
+}
+
+.legal-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.legal-header-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.legal-header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: var(--text-primary);
+}
+
+.legal-effective {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+/* Sections */
+.legal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.legal-section {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.legal-section:last-child {
+  border-bottom: none;
+}
+
+.legal-section.highlight {
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.legal-section-heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.6rem;
+}
+
+.legal-section.highlight .legal-section-heading {
+  color: #f59e0b;
+}
+
+.legal-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.legal-section-body p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  font-size: 0.9rem;
+}
+
+.legal-section-body strong {
+  color: var(--text-primary);
+}
+
+.legal-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.legal-list li {
+  color: var(--text-secondary);
+  line-height: 1.65;
+  font-size: 0.9rem;
+}
+
+.legal-list li strong {
+  color: var(--text-primary);
+}
+
+.legal-footer-note {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--panel-border);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.legal-footer-note a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+.legal-footer-note a:hover {
+  text-decoration: underline;
+}
+
+/* ── App footer with legal links ──────────────────────────────────────────── */
+
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  padding: 1.25rem 1rem;
+  margin-top: auto;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.app-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-footer-link {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.app-footer-link:hover {
+  color: var(--text-primary);
+}
+
+.app-footer-sep {
+  color: var(--panel-border);
+}
+
+/* ── Risk banner (shown in app) ───────────────────────────────────────────── */
+
+.risk-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.risk-banner svg {
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.risk-banner strong {
+  color: #f59e0b;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .legal-header h1 {
+    font-size: 1.25rem;
+  }
+  .app-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

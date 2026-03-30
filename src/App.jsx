@@ -6,15 +6,18 @@ import Watchlist from './components/Watchlist'
 import Learning from './components/Learning'
 import TechnicalAnalysis from './components/TechnicalAnalysis'
 import Insights from './components/Insights'
+import Legal from './components/Legal'
 import Login from './components/Login'
 import { PortfolioProvider } from './context/PortfolioContext'
 import { useAuth } from './context/AuthContext'
 import { auth } from './firebase'
 import { Activity, BookOpen, LayoutDashboard, Briefcase, Eye, BarChart2, BrainCircuit } from 'lucide-react'
+import './components/Legal.css'
 
 function App() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [legalPage, setLegalPage] = useState(null); // 'terms' | 'privacy' | 'risk'
   const [theme, setTheme] = useState('dark');
 
   // Use window.innerWidth (CSS pixels) — respects viewport meta tag on all devices
@@ -126,17 +129,28 @@ function App() {
           </div>
         </header>
 
-        <PortfolioProvider>
-          {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
-          {activeTab === 'portfolio' && <Portfolio />}
-          {activeTab === 'insights'  && <Insights />}
-          {activeTab === 'analysis'  && <TechnicalAnalysis />}
-          {activeTab === 'watchlist' && <Watchlist />}
-          {activeTab === 'learning'  && <Learning />}
-        </PortfolioProvider>
+        {legalPage ? (
+          <Legal page={legalPage} onBack={() => setLegalPage(null)} />
+        ) : (
+          <PortfolioProvider>
+            {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
+            {activeTab === 'portfolio' && <Portfolio />}
+            {activeTab === 'insights'  && <Insights />}
+            {activeTab === 'analysis'  && <TechnicalAnalysis />}
+            {activeTab === 'watchlist' && <Watchlist />}
+            {activeTab === 'learning'  && <Learning />}
+          </PortfolioProvider>
+        )}
 
-        <footer style={{ textAlign: 'center', padding: '1rem', marginTop: 'auto', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-          &copy; {new Date().getFullYear()} KTrade — Alex Katzevich
+        <footer className="app-footer">
+          <span>&copy; {new Date().getFullYear()} KTrade — Alex Katzevich</span>
+          <div className="app-footer-links">
+            <button className="app-footer-link" onClick={() => setLegalPage('terms')}>Terms of Service</button>
+            <span className="app-footer-sep">·</span>
+            <button className="app-footer-link" onClick={() => setLegalPage('privacy')}>Privacy Policy</button>
+            <span className="app-footer-sep">·</span>
+            <button className="app-footer-link" onClick={() => setLegalPage('risk')}>Risk Disclaimer</button>
+          </div>
         </footer>
       </main>
 

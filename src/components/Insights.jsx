@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { RefreshCw, ChevronDown, TrendingUp, TrendingDown, Minus, AlertTriangle, Lightbulb, Activity } from 'lucide-react';
+import { RefreshCw, ChevronDown, TrendingUp, TrendingDown, Minus, AlertTriangle, Lightbulb, Activity, ShieldAlert } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { fetchAIInsights } from '../data/api';
 import './Insights.css';
+import './Legal.css';
 
 const ACTION_CONFIG = {
   ADD:  { color: '#22c55e', bg: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.25)',  icon: <TrendingUp  size={13} />, label: 'ADD'  },
@@ -85,6 +86,12 @@ export default function Insights() {
       <div className="portfolio-header">
         <h2>Portfolio Intelligence</h2>
         <p style={{ color: 'var(--text-secondary)' }}>AI-powered analysis of your holdings and market conditions.</p>
+      </div>
+
+      {/* Risk banner */}
+      <div className="risk-banner">
+        <ShieldAlert size={15} />
+        <span><strong>Not financial advice.</strong> AI insights are for educational purposes only and do not constitute investment recommendations. Always do your own research and consult a qualified financial advisor before making investment decisions.</span>
       </div>
 
       {/* Header card */}
