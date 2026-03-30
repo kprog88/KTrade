@@ -1,24 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 import { usePortfolio } from '../context/PortfolioContext'
-import { fetchMomentum, fetchMarketNews } from '../data/api'
-import { BrainCircuit, TrendingUp, TrendingDown, Newspaper, ExternalLink } from 'lucide-react'
+import { fetchMomentum } from '../data/api'
+import { BrainCircuit, TrendingUp, TrendingDown } from 'lucide-react'
 import './Dashboard.css'
 
 const COLORS = ['#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1', '#f43f5e'];
 
-function timeAgo(unixTs) {
-  const diff = Math.floor(Date.now() / 1000) - unixTs;
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
 export default function Dashboard({ onNavigate, isMobile }) {
   const { holdings } = usePortfolio();
   const [momentum, setMomentum] = useState([]);
-  const [news, setNews]         = useState([]);
-  const [newsLoading, setNewsLoading] = useState(true);
   const [tooltip, setTooltip]   = useState(null);
 
   const metrics = useMemo(() => {
@@ -38,7 +29,15 @@ export default function Dashboard({ onNavigate, isMobile }) {
 
     const profit        = totalValue - costBasis;
     const profitPercent = costBasis > 0 ? (profit / costBasis) * 100 : 0;
-    return { totalValue, profit, profitPercent, assetCount: holdings.length, topGainer, topLoser };
+    const pieData       = [...holdings]
+      .map(h => {
+        const price = h.currentPrice || h.avgPrice;
+        const rate  = h.exchangeRateToUSD || 1;
+        return { name: h.symbol, value: h.amount * price * rate };
+      })
+      .filter(d => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+    return { totalValue, costBasis, profit, profitPercent, assetCount: holdings.length, topGainer, topLoser, pieData };
   }, [holdings]);
 
   const holdingRows = useMemo(() => {
@@ -58,7 +57,6 @@ export default function Dashboard({ onNavigate, isMobile }) {
 
   useEffect(() => {
     fetchMomentum().then(d => { if (d?.length) setMomentum(d); });
-    fetchMarketNews().then(d => { setNews(d || []); setNewsLoading(false); });
   }, []);
 
   const fmt = n => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -103,41 +101,49 @@ export default function Dashboard({ onNavigate, isMobile }) {
         </div>
       </div>
 
-      {/* ── Market News ── */}
-      <div className="glass-panel news-panel" style={{ gridColumn: col }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-          <Newspaper size={16} color="var(--accent-color)" />
-          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Market News</h2>
-        </div>
-
-        {newsLoading ? (
-          <div className="news-loading">
-            <span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⟳</span>
-            Loading latest headlines…
+      {/* ── Allocation donut ── */}
+      <div className="glass-panel alloc-panel" style={{ gridColumn: col }}>
+        <h2 style={{ margin: '0 0 0.75rem', fontSize: '1rem', fontWeight: 600 }}>Allocation</h2>
+        {metrics.pieData.length === 0 ? (
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', textAlign: 'center', padding: '2rem 0' }}>
+            Add positions to see your allocation.
           </div>
-        ) : news.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>No news available right now.</p>
         ) : (
-          <div className="news-list">
-            {news.map((article, i) => (
-              <a
-                key={i}
-                className="news-item"
-                href={article.link}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className="news-source-badge">{article.publisher?.split(' ')[0] || 'News'}</span>
-                <div className="news-content">
-                  <div className="news-headline">{article.title}</div>
-                  <div className="news-meta">
-                    {article.publishedAt ? timeAgo(article.publishedAt) : ''}
-                    <ExternalLink size={10} style={{ marginLeft: '0.3rem', opacity: 0.5, verticalAlign: 'middle' }} />
-                  </div>
+          <>
+            <div style={{ width: '100%', height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={metrics.pieData}
+                    cx="50%" cy="50%"
+                    innerRadius="45%"
+                    outerRadius="70%"
+                    dataKey="value"
+                    stroke="none"
+                    paddingAngle={2}
+                  >
+                    {metrics.pieData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip
+                    formatter={(v, name) => [`$${fmt(v)} (${metrics.totalValue > 0 ? ((v/metrics.totalValue)*100).toFixed(1) : 0}%)`, name]}
+                    contentStyle={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', fontSize: '0.82rem' }}
+                    itemStyle={{ color: 'var(--text-primary)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Compact legend */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem 0.85rem', marginTop: '0.5rem' }}>
+              {metrics.pieData.map((d, i) => (
+                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: COLORS[i % COLORS.length], flexShrink: 0, display: 'inline-block' }} />
+                  {d.name}
                 </div>
-              </a>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
