@@ -28,16 +28,18 @@
 }
 
 .metric-label {
-  font-size: 0.875rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
+  font-weight: 500;
 }
 
 .metric-value {
-  font-size: 1.4rem;
-  font-weight: 700;
+  font-size: 1.1rem;
+  font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .trend-positive {
@@ -314,7 +316,7 @@
   .db-holdings-list::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 4px; }
 
   .metric-value {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
 
   .pie-chart-wrap {
