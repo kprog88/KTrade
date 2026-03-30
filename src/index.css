@@ -98,6 +98,12 @@ body::after {
   box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
 }
 
+@media (max-width: 768px) {
+  .glass-panel:hover {
+    transform: none;
+  }
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   margin-bottom: 0.5rem;

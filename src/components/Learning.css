@@ -312,20 +312,40 @@
 }
 
 /* Mobile */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .learn-result-title {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
   }
 
   .learn-result-emoji {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
   .learn-tldr {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 
   .learn-search-input {
     font-size: 0.9rem;
+  }
+
+  .learn-search-btn {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.82rem;
+    min-width: 55px;
+  }
+
+  .learn-chips {
+    gap: 0.4rem;
+  }
+
+  .learn-chip {
+    font-size: 0.78rem;
+    padding: 0.32rem 0.6rem;
+  }
+
+  .learn-result-head {
+    flex-direction: row;
+    gap: 0.75rem;
   }
 }

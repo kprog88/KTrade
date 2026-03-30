@@ -684,17 +684,31 @@
 /* ─── MOBILE ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  .ta-acc-symbol      { font-size: 1.1rem; }
-  .ta-acc-price       { font-size: 0.95rem; }
-  .ta-acc-trigger     { padding: 0.85rem 1rem; gap: 0.5rem; }
-  .ta-card-body       { padding: 0 1rem 1rem; }
-  .ta-tab             { padding: 0.32rem 0.65rem; font-size: 0.75rem; }
-  .ta-badge           { min-width: 82px; }
+  .ta-acc-symbol      { font-size: 1rem; }
+  .ta-acc-price       { font-size: 0.9rem; }
+  .ta-acc-trigger     { padding: 0.75rem 0.85rem; gap: 0.4rem; flex-wrap: wrap; }
+  .ta-acc-right       { gap: 0.4rem; }
+  .ta-card-body       { padding: 0 0.85rem 0.85rem; gap: 1rem; }
+  .ta-tab             { padding: 0.3rem 0.55rem; font-size: 0.72rem; }
+  .ta-tabs            { gap: 0.3rem; }
+  .ta-badge           { min-width: 76px; padding: 0.3rem 0.6rem; }
+  .ta-badge-label     { font-size: 0.74rem; }
   .ta-plain-actions   { grid-template-columns: 1fr; }
   .ta-plain-text      { font-size: 0.82rem; }
-  .ta-inst-stat       { min-width: 90px; }
-  .ta-holder-row      { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+  .ta-inst-stat       { min-width: 80px; flex: 1; }
+  .ta-inst-stats      { gap: 0.5rem; }
+  .ta-holder-row      { flex-direction: column; align-items: flex-start; gap: 0.2rem; }
   .ta-holder-right    { width: 100%; justify-content: flex-start; }
   .ta-insider-row     { flex-direction: column; align-items: flex-start; }
-  .ta-acc-right       { gap: 0.5rem; }
+  .ta-plain-summary   { padding: 1rem; }
+  .ta-plain-headline p { font-size: 0.88rem; }
+
+  /* Chart container: ensure no horizontal overflow */
+  .ta-chart-area {
+    overflow: hidden;
+    max-width: 100%;
+  }
+  .ta-chart-area .recharts-wrapper {
+    max-width: 100% !important;
+  }
 }

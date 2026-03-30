@@ -280,7 +280,6 @@
     gap: 1rem;
   }
 
-  /* All grid children go full width on mobile */
   .dashboard-grid > * {
     grid-column: 1 / -1 !important;
   }
@@ -291,17 +290,45 @@
     grid-column: 1 / -1 !important;
   }
 
+  /* Metrics bar: 2-column grid on mobile */
+  .portfolio-overview {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem 1rem;
+    align-items: start;
+  }
+
   .metric-value {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
+  }
+
+  .metric-label {
+    font-size: 0.72rem;
+  }
+
+  /* Pie chart height reduction on mobile */
+  .holdings-panel > div:last-child {
+    height: 240px !important;
+  }
+
+  /* Holdings list: no scrollable inner, show all */
+  .db-holdings-list {
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  /* Moves summary: 2 col on mobile */
+  .ins-moves-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .momentum-tooltip {
     display: none;
   }
 
-  /* Momentum cards: slightly narrower on mobile for better scroll */
   .momentum-card {
-    flex: 0 0 160px !important;
-    min-width: 160px;
+    flex: 0 0 155px !important;
+    min-width: 155px;
+    padding: 0.75rem !important;
   }
 }
