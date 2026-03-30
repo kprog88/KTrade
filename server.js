@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import learnHandler from './api/learn.js';
 import aiInsightsHandler from './api/ai-insights.js';
+import marketNewsHandler from './api/market-news.js';
 
 const app = express();
 app.use(cors());
@@ -271,6 +272,9 @@ app.get('/api/exchange-rate', async (req, res) => {
 
 // Academy / Learn
 app.get('/api/learn', learnHandler);
+
+// Market News
+app.get('/api/market-news', (req, res) => marketNewsHandler(req, res));
 
 const PORT = 3001;
 app.listen(PORT, () => {

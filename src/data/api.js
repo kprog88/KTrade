@@ -47,6 +47,17 @@ export const fetchAIInsights = async (holdings) => {
   }
 };
 
+export const fetchMarketNews = async () => {
+  try {
+    const res = await fetch('/api/market-news');
+    if (!res.ok) throw new Error('Failed');
+    return await res.json();
+  } catch (error) {
+    console.error('Error fetching market news:', error);
+    return [];
+  }
+};
+
 export const fetchMomentum = async () => {
   try {
     const res = await fetch('/api/market-momentum');

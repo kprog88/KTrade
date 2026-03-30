@@ -31,6 +31,12 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  // Drive layout via class so CSS doesn't depend on viewport width queries
+  // (Samsung desktop mode fakes viewport but can't fake navigator.maxTouchPoints)
+  useEffect(() => {
+    document.documentElement.classList.toggle('is-mobile', isMobile);
+  }, [isMobile]);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(checkMobile());
     window.addEventListener('resize', handleResize);

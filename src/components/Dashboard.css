@@ -1,19 +1,17 @@
-/* ── Dashboard — mobile-first ─────────────────────────────────────────────
-   Default layout is single-column (works for phones AND Samsung desktop-mode
-   which fakes window.innerWidth as ~1280px but is still below min-width:1300px).
-   Two-column layout only activates on real desktop (≥1300px).
-   ───────────────────────────────────────────────────────────────────────── */
+/* Dashboard — desktop base layout.
+   Mobile overrides are in App.css via html.is-mobile selector (JS-driven). */
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr;        /* single column by default */
-  gap: 1rem;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1.5rem;
   width: 100%;
   max-width: 100%;
 }
 
-/* ── Metrics bar — always auto-fit, never stretches ── */
+/* ── Metrics bar ── */
 .portfolio-overview {
+  grid-column: span 12;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.75rem 1.25rem;
@@ -25,6 +23,7 @@
 .metric {
   display: flex;
   flex-direction: column;
+  gap: 0.15rem;
 }
 
 .metric-label {
@@ -36,7 +35,7 @@
 }
 
 .metric-value {
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -60,20 +59,17 @@
   gap: 0.25rem;
 }
 
-/* ── Chart panel ── */
-.holdings-panel {
+/* ── Left panel — news feed (replaces pie chart) ── */
+.news-panel {
+  grid-column: span 8;
   min-height: 300px;
   overflow: hidden;
 }
 
-.pie-chart-wrap {
-  width: 100%;
-  height: 280px;
-}
-
 /* ── Holdings breakdown panel ── */
 .db-holdings-panel {
-  min-height: 200px;
+  grid-column: span 4;
+  min-height: 300px;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -103,9 +99,14 @@
   flex-direction: column;
   gap: 0.6rem;
   flex: 1;
-  overflow-y: visible;
+  overflow-y: auto;
+  max-height: 300px;
   padding-right: 2px;
 }
+
+.db-holdings-list::-webkit-scrollbar { width: 4px; }
+.db-holdings-list::-webkit-scrollbar-track { background: transparent; }
+.db-holdings-list::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 4px; }
 
 .db-holding-row {
   display: flex;
@@ -209,30 +210,93 @@
   background: rgba(139,92,246,0.2);
 }
 
-/* ── Momentum cards ── */
-.chart-placeholder {
-  width: 100%;
-  height: 200px;
-  margin-top: 1rem;
-  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent);
-  border-radius: 8px;
+/* ── News feed styles ── */
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.news-item {
+  display: flex;
+  gap: 0.75rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--panel-border);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.news-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.news-source-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-color);
+  background: rgba(139,92,246,0.1);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  white-space: nowrap;
+  height: fit-content;
+  flex-shrink: 0;
+}
+
+.news-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.news-headline {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.news-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.news-sentiment {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-left: 0.4rem;
+}
+
+.news-sentiment.pos { color: var(--success-color); background: rgba(16,185,129,0.1); }
+.news-sentiment.neg { color: var(--danger-color); background: rgba(239,68,68,0.1); }
+.news-sentiment.neu { color: var(--text-secondary); background: rgba(255,255,255,0.05); }
+
+.news-loading {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
   color: var(--text-secondary);
-  animation: pulse 2s infinite ease-in-out;
+  font-size: 0.88rem;
+  padding: 1rem 0;
 }
 
-@keyframes pulse {
-  0% { opacity: 0.5; }
-  50% { opacity: 0.8; }
-  100% { opacity: 0.5; }
-}
-
+/* ── Momentum cards ── */
 .momentum-card {
   position: relative;
   overflow: visible;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  flex: 0 0 220px;
+  min-width: 220px;
 }
 
 .momentum-card:hover {
@@ -280,51 +344,3 @@
 
 .accent-bg { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
 .success-bg { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-
-/* ── Desktop layout: side-by-side panels (real screens ≥1300px) ────────────
-   Samsung desktop mode fakes ~1280px, which is below this threshold,
-   so it stays single-column. Real desktop (MacBook 1440+, monitors) get
-   the full two-column layout.
-   ───────────────────────────────────────────────────────────────────────── */
-@media (min-width: 1300px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 1.5rem;
-  }
-
-  .portfolio-overview {
-    grid-column: span 12;
-  }
-
-  .holdings-panel {
-    grid-column: span 8;
-    min-height: 300px;
-  }
-
-  .db-holdings-panel {
-    grid-column: span 4;
-    min-height: 300px;
-  }
-
-  .db-holdings-list {
-    max-height: 300px;
-    overflow-y: auto;
-  }
-
-  .db-holdings-list::-webkit-scrollbar { width: 4px; }
-  .db-holdings-list::-webkit-scrollbar-track { background: transparent; }
-  .db-holdings-list::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 4px; }
-
-  .metric-value {
-    font-size: 1.5rem;
-  }
-
-  .pie-chart-wrap {
-    height: 300px;
-  }
-
-  .momentum-card {
-    flex: 0 0 220px !important;
-    min-width: 220px;
-  }
-}
