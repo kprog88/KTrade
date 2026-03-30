@@ -53,31 +53,49 @@ function StockRow({ action, rationale }) {
   );
 }
 
+const CACHE_KEY = 'ktrade_insights_cache';
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+}
+
 export default function Insights() {
   const { holdings } = usePortfolio();
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [data, setData]           = useState(null);
+  const [loading, setLoading]     = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const hasFetched = useRef(false);
+  const [usedToday, setUsedToday] = useState(false);
 
-  const load = async () => {
+  // Load from cache on mount — never auto-call the API
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached.data) {
+          setData(cached.data);
+          setLastUpdated(cached.date ? new Date(cached.date + 'T12:00:00') : new Date());
+        }
+        if (cached.date === todayStr()) setUsedToday(true);
+      }
+    } catch (_) {}
+  }, []);
+
+  const generate = async () => {
     setLoading(true);
     setData(null);
     const result = await fetchAIInsights(holdings);
     if (result) {
+      const now = new Date();
       setData(result);
-      setLastUpdated(new Date());
+      setLastUpdated(now);
+      setUsedToday(true);
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result, date: todayStr() }));
+      } catch (_) {}
     }
     setLoading(false);
   };
-
-  useEffect(() => {
-    if (!hasFetched.current) {
-      hasFetched.current = true;
-      load();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const score = data ? healthScore(data.actions) : null;
 
@@ -104,9 +122,9 @@ export default function Insights() {
               <span className="ins-updated">Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             )}
           </div>
-          <button className="ins-refresh-btn" onClick={load} disabled={loading}>
+          <button className="ins-refresh-btn" onClick={generate} disabled={loading || usedToday}>
             <RefreshCw size={14} className={loading ? 'ins-spin' : ''} />
-            {loading ? 'Analyzing…' : 'Refresh'}
+            {loading ? 'Analyzing…' : usedToday ? 'Used today ✓' : 'Generate'}
           </button>
         </div>
 
@@ -126,8 +144,16 @@ export default function Insights() {
         )}
 
         {!loading && !data && (
-          <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '1rem 0' }}>
-            Click Refresh to generate your AI analysis.
+          <div style={{ textAlign: 'center', padding: '1.5rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '2rem' }}>🤖</span>
+            <p style={{ color: 'var(--text-primary)', fontWeight: 600, margin: 0 }}>No analysis yet</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: 0 }}>Hit <strong>Generate</strong> to get your daily AI portfolio review. One free analysis per day.</p>
+          </div>
+        )}
+
+        {!loading && data && usedToday && (
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '0.5rem', textAlign: 'right' }}>
+            Next analysis available tomorrow.
           </p>
         )}
       </div>
