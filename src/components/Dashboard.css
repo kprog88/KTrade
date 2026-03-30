@@ -264,3 +264,35 @@
 
 .accent-bg { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
 .success-bg { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+  }
+
+  .dashboard-grid > * {
+    grid-column: 1 / -1 !important;
+  }
+
+  .portfolio-overview {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)) !important;
+  }
+
+  .metric-value {
+    font-size: 1.1rem !important;
+  }
+
+  .db-holdings-list {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+
+  .momentum-tooltip { display: none; }
+
+  .momentum-card {
+    flex: 0 0 155px !important;
+    min-width: 155px;
+    padding: 0.75rem !important;
+  }
+}

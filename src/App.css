@@ -1,12 +1,8 @@
 /* =====================
-   App Layout — desktop base, .is-mobile overrides
-   JS adds `is-mobile` class to <html> using navigator.maxTouchPoints,
-   which Samsung desktop mode CANNOT fake. All mobile layout driven here.
+   App Layout
    ===================== */
-
 .app-container {
   display: flex;
-  flex-direction: row;
   min-height: 100vh;
   width: 100%;
   max-width: 100vw;
@@ -102,94 +98,59 @@
 }
 
 /* =====================
-   Mobile overrides — driven by JS class, not viewport width.
-   Works even when Samsung fakes a wide viewport.
+   Mobile (≤1024px)
    ===================== */
-html.is-mobile .app-container {
-  flex-direction: column;
-  overflow-x: hidden;
-}
+@media (max-width: 1024px) {
+  .app-container {
+    flex-direction: column;
+    overflow-x: hidden;
+  }
 
-html.is-mobile .main-content {
-  padding: 0.85rem;
-  padding-bottom: 80px;
-  gap: 0.85rem;
-  max-width: 100%;
-  width: 100%;
-  box-sizing: border-box;
-}
+  .main-content {
+    padding: 0.85rem;
+    padding-bottom: 80px;
+    width: 100%;
+    max-width: 100%;
+    gap: 0.85rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
 
-html.is-mobile .header {
-  flex-wrap: nowrap;
-}
+  .header {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
 
-html.is-mobile .header h1 {
-  font-size: 1.2rem;
-}
+  .header h1 {
+    font-size: 1.2rem;
+    margin: 0;
+  }
 
-html.is-mobile .header-user {
-  gap: 0.5rem;
-}
+  .header-user {
+    gap: 0.5rem;
+  }
 
-html.is-mobile .glass-panel {
-  padding: 1rem;
-  border-radius: 12px;
-}
+  .glass-panel {
+    padding: 1rem;
+    border-radius: 12px;
+  }
 
-html.is-mobile .recharts-wrapper,
-html.is-mobile .recharts-surface {
-  max-width: 100% !important;
-  overflow: visible;
-}
+  .recharts-wrapper,
+  .recharts-surface {
+    max-width: 100% !important;
+    overflow: visible;
+  }
 
-html.is-mobile .app-footer {
-  flex-direction: column;
-  gap: 0.4rem;
-  text-align: center;
-  padding: 1rem 0.85rem 1.5rem;
-}
+  .app-footer {
+    flex-direction: column;
+    gap: 0.4rem;
+    text-align: center;
+    padding: 1rem 0.85rem 1.5rem;
+  }
 
-html.is-mobile .app-footer-links {
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem 0.75rem;
-}
-
-/* =====================
-   Dashboard grid — mobile via JS class
-   ===================== */
-html.is-mobile .dashboard-grid {
-  grid-template-columns: 1fr !important;
-  gap: 0.85rem !important;
-}
-
-html.is-mobile .dashboard-grid > * {
-  grid-column: 1 / -1 !important;
-}
-
-html.is-mobile .portfolio-overview {
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)) !important;
-}
-
-html.is-mobile .metric-value {
-  font-size: 1.1rem !important;
-}
-
-html.is-mobile .pie-chart-wrap {
-  height: 260px !important;
-}
-
-html.is-mobile .db-holdings-list {
-  max-height: none !important;
-  overflow-y: visible !important;
-}
-
-html.is-mobile .momentum-tooltip {
-  display: none;
-}
-
-html.is-mobile .momentum-card {
-  flex: 0 0 155px !important;
-  min-width: 155px;
-  padding: 0.75rem !important;
+  .app-footer-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 0.75rem;
+  }
 }

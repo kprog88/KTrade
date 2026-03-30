@@ -20,8 +20,7 @@ function App() {
   const [legalPage, setLegalPage] = useState(null); // 'terms' | 'privacy' | 'risk'
   const [theme, setTheme] = useState('dark');
 
-  // navigator.maxTouchPoints > 0 = hardware touch. Samsung cannot fake this.
-  const checkMobile = () => navigator.maxTouchPoints > 0;
+  const checkMobile = () => window.innerWidth <= 1024;
 
   const [isMobile, setIsMobile] = useState(checkMobile);
 
@@ -29,11 +28,6 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Drive layout via class so CSS doesn't depend on viewport width queries
-  // (Samsung desktop mode fakes viewport but can't fake navigator.maxTouchPoints)
-  useEffect(() => {
-    document.documentElement.classList.toggle('is-mobile', isMobile);
-  }, [isMobile]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(checkMobile());

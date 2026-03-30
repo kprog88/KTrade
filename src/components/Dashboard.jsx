@@ -7,7 +7,7 @@ import './Dashboard.css'
 
 const COLORS = ['#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1', '#f43f5e'];
 
-export default function Dashboard({ onNavigate, isMobile }) {
+export default function Dashboard({ onNavigate }) {
   const { holdings } = usePortfolio();
   const [momentum, setMomentum] = useState([]);
   const [tooltip, setTooltip]   = useState(null);
@@ -61,13 +61,11 @@ export default function Dashboard({ onNavigate, isMobile }) {
 
   const fmt = n => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const col = isMobile ? '1 / -1' : undefined;
-
   return (
-    <div className="dashboard-grid" style={isMobile ? { gridTemplateColumns: '1fr', gap: '0.85rem' } : {}}>
+    <div className="dashboard-grid">
 
       {/* ── Metrics bar ── */}
-      <div className="glass-panel portfolio-overview" style={{ gridColumn: col }}>
+      <div className="glass-panel portfolio-overview">
         <div className="metric">
           <span className="metric-label">Total Balance</span>
           <span className="metric-value">${fmt(metrics.totalValue)}</span>
@@ -102,7 +100,7 @@ export default function Dashboard({ onNavigate, isMobile }) {
       </div>
 
       {/* ── Allocation donut ── */}
-      <div className="glass-panel alloc-panel" style={{ gridColumn: col }}>
+      <div className="glass-panel alloc-panel">
         <h2 style={{ margin: '0 0 0.75rem', fontSize: '1rem', fontWeight: 600 }}>Allocation</h2>
         {metrics.pieData.length === 0 ? (
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', textAlign: 'center', padding: '2rem 0' }}>
@@ -148,7 +146,7 @@ export default function Dashboard({ onNavigate, isMobile }) {
       </div>
 
       {/* ── Holdings breakdown ── */}
-      <div className="glass-panel db-holdings-panel" style={{ gridColumn: col }}>
+      <div className="glass-panel db-holdings-panel">
         <div className="db-holdings-header">
           <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Holdings</h2>
           <span className="db-holdings-count">{holdingRows.length} positions</span>
@@ -193,7 +191,7 @@ export default function Dashboard({ onNavigate, isMobile }) {
       </div>
 
       {/* ── Market Opportunities ── */}
-      <div className="glass-panel" style={{ gridColumn: isMobile ? '1 / -1' : 'span 12', marginTop: '0.5rem', overflow: 'visible' }}>
+      <div className="glass-panel" style={{ gridColumn: 'span 12', marginTop: '0.5rem', overflow: 'visible' }}>
         <h2 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Market Opportunities</h2>
         <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
           {momentum.map((stock, i) => {
