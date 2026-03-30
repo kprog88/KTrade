@@ -20,9 +20,10 @@ function App() {
   const [legalPage, setLegalPage] = useState(null); // 'terms' | 'privacy' | 'risk'
   const [theme, setTheme] = useState('dark');
 
-  // Math.min(screen.width, screen.height) = the physical short side of the device.
-  // Immune to Samsung "desktop mode" which fakes window.innerWidth as 1280px.
-  const checkMobile = () => Math.min(screen.width, screen.height) <= 768;
+  // navigator.maxTouchPoints > 0 = hardware touch capability.
+  // Cannot be faked by Samsung "desktop mode" (it would break touch interaction).
+  // screen.width <= 1200 excludes touch-screen laptops/large tablets from mobile layout.
+  const checkMobile = () => navigator.maxTouchPoints > 0 && screen.width <= 1200;
 
   const [isMobile, setIsMobile] = useState(checkMobile);
 
@@ -71,7 +72,7 @@ function App() {
                 key={item.id}
                 href="#"
                 className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); setActiveTab(item.id); }}
+                onClick={(e) => { e.preventDefault(); setActiveTab(item.id); setLegalPage(null); }}
                 style={item.id === 'learning' ? { display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--panel-border)' } : { display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
                 {item.icon}
@@ -175,7 +176,7 @@ function App() {
           {navItems.map(item => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => { setActiveTab(item.id); setLegalPage(null); }}
               style={{
                 display: 'flex',
                 flexDirection: 'column',

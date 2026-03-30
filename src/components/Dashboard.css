@@ -1,13 +1,19 @@
+/* ── Dashboard — mobile-first ─────────────────────────────────────────────
+   Default layout is single-column (works for phones AND Samsung desktop-mode
+   which fakes window.innerWidth as ~1280px but is still below min-width:1300px).
+   Two-column layout only activates on real desktop (≥1300px).
+   ───────────────────────────────────────────────────────────────────────── */
+
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: 1fr;        /* single column by default */
+  gap: 1rem;
   width: 100%;
   max-width: 100%;
 }
 
+/* ── Metrics bar — always auto-fit, never stretches ── */
 .portfolio-overview {
-  grid-column: span 12;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.75rem 1.25rem;
@@ -29,7 +35,7 @@
 }
 
 .metric-value {
-  font-size: 2rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -52,26 +58,24 @@
   gap: 0.25rem;
 }
 
+/* ── Chart panel ── */
 .holdings-panel {
-  grid-column: span 8;
   min-height: 300px;
   overflow: hidden;
 }
 
 .pie-chart-wrap {
   width: 100%;
-  height: 300px;
+  height: 280px;
 }
 
-/* Holdings breakdown panel */
+/* ── Holdings breakdown panel ── */
 .db-holdings-panel {
-  grid-column: span 4;
-  min-height: 300px;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
-
 
 .db-holdings-header {
   display: flex;
@@ -97,14 +101,9 @@
   flex-direction: column;
   gap: 0.6rem;
   flex: 1;
-  overflow-y: auto;
-  max-height: 300px;
+  overflow-y: visible;
   padding-right: 2px;
 }
-
-.db-holdings-list::-webkit-scrollbar { width: 4px; }
-.db-holdings-list::-webkit-scrollbar-track { background: transparent; }
-.db-holdings-list::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 4px; }
 
 .db-holding-row {
   display: flex;
@@ -208,6 +207,7 @@
   background: rgba(139,92,246,0.2);
 }
 
+/* ── Momentum cards ── */
 .chart-placeholder {
   width: 100%;
   height: 200px;
@@ -276,50 +276,53 @@
   transform: translateY(0) scale(1);
 }
 
-/* =====================
-   MOBILE — Dashboard
-   Breakpoint at 1024px catches Samsung desktop mode
-   ===================== */
-@media (max-width: 1024px) {
+.accent-bg { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+.success-bg { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+
+/* ── Desktop layout: side-by-side panels (real screens ≥1300px) ────────────
+   Samsung desktop mode fakes ~1280px, which is below this threshold,
+   so it stays single-column. Real desktop (MacBook 1440+, monitors) get
+   the full two-column layout.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (min-width: 1300px) {
   .dashboard-grid {
-    grid-template-columns: 1fr !important;
-    gap: 1rem;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1.5rem;
   }
 
-  .dashboard-grid > * {
-    grid-column: 1 / -1 !important;
-  }
-
-  .holdings-panel,
-  .db-holdings-panel {
-    grid-column: 1 / -1 !important;
-  }
-
-  /* Metrics: compact on small screens */
   .portfolio-overview {
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)) !important;
+    grid-column: span 12;
   }
+
+  .holdings-panel {
+    grid-column: span 8;
+    min-height: 300px;
+  }
+
+  .db-holdings-panel {
+    grid-column: span 4;
+    min-height: 300px;
+  }
+
+  .db-holdings-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .db-holdings-list::-webkit-scrollbar { width: 4px; }
+  .db-holdings-list::-webkit-scrollbar-track { background: transparent; }
+  .db-holdings-list::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 4px; }
 
   .metric-value {
-    font-size: 1.15rem !important;
+    font-size: 2rem;
   }
 
-  /* Pie chart: explicit height on mobile */
   .pie-chart-wrap {
-    height: 280px !important;
+    height: 300px;
   }
-
-  /* Holdings list: remove fixed max-height scroll */
-  .db-holdings-list {
-    max-height: none !important;
-    overflow-y: visible !important;
-  }
-
-  .momentum-tooltip { display: none; }
 
   .momentum-card {
-    flex: 0 0 155px !important;
-    min-width: 155px;
-    padding: 0.75rem !important;
+    flex: 0 0 220px !important;
+    min-width: 220px;
   }
 }
