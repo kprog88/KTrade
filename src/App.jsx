@@ -127,7 +127,7 @@ function App() {
         </header>
 
         <PortfolioProvider>
-          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
           {activeTab === 'portfolio' && <Portfolio />}
           {activeTab === 'insights'  && <Insights />}
           {activeTab === 'analysis'  && <TechnicalAnalysis />}
