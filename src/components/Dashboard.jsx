@@ -127,17 +127,17 @@ export default function Dashboard({ onNavigate }) {
       {/* ── Pie chart ── */}
       <div className="glass-panel holdings-panel">
         <h2 style={{ marginBottom: '1rem' }}>Asset Allocation</h2>
-        <div style={{ width: '100%', height: '300px' }}>
+        <div className="pie-chart-wrap">
           {metrics.pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
                   data={metrics.pieData}
-                  cx="50%" cy="50%"
+                  cx="50%" cy="45%"
                   activeIndex={activePieIndex}
                   activeShape={renderActiveShape}
                   onMouseEnter={(_, idx) => setActivePieIndex(idx)}
-                  innerRadius={60} outerRadius={100}
+                  innerRadius={50} outerRadius={85}
                   dataKey="value"
                   stroke="var(--panel-bg)" strokeWidth={2}
                 >
@@ -152,7 +152,7 @@ export default function Dashboard({ onNavigate }) {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+            <div style={{ width: '100%', height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
               Add assets to view allocation.
             </div>
           )}

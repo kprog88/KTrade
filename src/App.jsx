@@ -44,12 +44,12 @@ function App() {
   }
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { id: 'portfolio', label: 'Portfolio',  icon: <Briefcase size={20} /> },
-    { id: 'insights',  label: 'Insights',   icon: <BrainCircuit size={20} /> },
-    { id: 'analysis',  label: 'Analysis',   icon: <BarChart2 size={20} /> },
-    { id: 'watchlist', label: 'Watchlist',  icon: <Eye size={20} /> },
-    { id: 'learning',  label: 'Academy',    icon: <BookOpen size={20} /> },
+    { id: 'dashboard', label: 'Dashboard', mobileLabel: 'Home',     icon: <LayoutDashboard size={20} /> },
+    { id: 'portfolio', label: 'Portfolio',  mobileLabel: 'Portfolio', icon: <Briefcase size={20} /> },
+    { id: 'insights',  label: 'Insights',   mobileLabel: 'Insights',  icon: <BrainCircuit size={20} /> },
+    { id: 'analysis',  label: 'Analysis',   mobileLabel: 'Analysis',  icon: <BarChart2 size={20} /> },
+    { id: 'watchlist', label: 'Watchlist',  mobileLabel: 'Watch',     icon: <Eye size={20} /> },
+    { id: 'learning',  label: 'Academy',    mobileLabel: 'Learn',     icon: <BookOpen size={20} /> },
   ];
 
   return (
@@ -180,20 +180,22 @@ function App() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: '3px',
-                padding: '0.4rem 0.75rem',
+                padding: '0.4rem 0.5rem',
                 background: 'none',
                 border: 'none',
                 color: activeTab === item.id ? 'var(--accent-color)' : 'var(--text-secondary)',
-                fontSize: '0.65rem',
+                fontSize: '0.6rem',
                 fontWeight: activeTab === item.id ? '600' : '400',
                 cursor: 'pointer',
                 transition: 'color 0.2s ease',
                 borderTop: activeTab === item.id ? '2px solid var(--accent-color)' : '2px solid transparent',
                 marginTop: '-1px',
+                flex: 1,
+                minWidth: 0,
               }}
             >
               {item.icon}
-              {item.label}
+              {item.mobileLabel || item.label}
             </button>
           ))}
         </nav>
