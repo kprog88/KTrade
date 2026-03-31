@@ -20,20 +20,15 @@ function App() {
   const [legalPage, setLegalPage] = useState(null); // 'terms' | 'privacy' | 'risk'
   const [theme, setTheme] = useState('dark');
 
-  const checkMobile = () => window.innerWidth <= 1024;
-
-  const [isMobile, setIsMobile] = useState(checkMobile);
+  // screen.width = physical device pixels. Samsung desktop mode fakes
+  // window.innerWidth (fires resize to ~1280px) but cannot change screen.width.
+  // We read this once at mount and never re-read on resize — screen size
+  // doesn't change mid-session, only Samsung's fake viewport does.
+  const isMobile = screen.width <= 1024;
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
-
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(checkMobile());
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
