@@ -7,7 +7,7 @@ import './Dashboard.css'
 
 const COLORS = ['#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1', '#f43f5e'];
 
-export default function Dashboard({ onNavigate }) {
+export default function Dashboard({ onNavigate, mobile }) {
   const { holdings } = usePortfolio();
   const [momentum, setMomentum] = useState([]);
   const [tooltip, setTooltip]   = useState(null);
@@ -61,46 +61,62 @@ export default function Dashboard({ onNavigate }) {
 
   const fmt = n => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  // All layout driven by inline styles from JS-detected `mobile`.
+  // CSS media queries use window.innerWidth which Samsung fakes.
+  // screen.width (used in App.jsx) cannot be faked — so we trust this prop.
+  const fullCol  = { gridColumn: '1 / -1' };
+  const gridStyle = mobile
+    ? { gridTemplateColumns: '1fr', gap: '0.85rem' }
+    : {};
+  const metricStyle = mobile
+    ? { gridTemplateColumns: 'repeat(2, 1fr)' }
+    : {};
+  const metricValueStyle = mobile
+    ? { fontSize: '1.05rem', fontWeight: 600 }
+    : {};
+
   return (
-    <div className="dashboard-grid">
+    <div className="dashboard-grid" style={gridStyle}>
 
       {/* ── Metrics bar ── */}
-      <div className="glass-panel portfolio-overview">
+      <div className="glass-panel portfolio-overview" style={{ ...fullCol, ...metricStyle }}>
         <div className="metric">
           <span className="metric-label">Total Balance</span>
-          <span className="metric-value">${fmt(metrics.totalValue)}</span>
+          <span className="metric-value" style={metricValueStyle}>${fmt(metrics.totalValue)}</span>
         </div>
         <div className="metric">
           <span className="metric-label">Total P/L</span>
-          <span className={`metric-value ${metrics.profit >= 0 ? 'trend-positive' : 'trend-negative'}`}>
+          <span className={`metric-value ${metrics.profit >= 0 ? 'trend-positive' : 'trend-negative'}`} style={metricValueStyle}>
             {metrics.profit >= 0 ? '+' : '-'}${fmt(Math.abs(metrics.profit))}
             <span style={{ fontSize: '0.8em', opacity: 0.85 }}> ({metrics.profitPercent.toFixed(1)}%)</span>
           </span>
         </div>
         <div className="metric">
           <span className="metric-label">Positions</span>
-          <span className="metric-value">{metrics.assetCount}</span>
+          <span className="metric-value" style={metricValueStyle}>{metrics.assetCount}</span>
         </div>
         <div className="metric">
           <span className="metric-label">Best</span>
           {metrics.topGainer ? (
-            <span className="metric-value trend-positive">
+            <span className="metric-value trend-positive" style={metricValueStyle}>
               {metrics.topGainer.symbol} +{Math.abs(metrics.topGainer.pct).toFixed(1)}%
             </span>
-          ) : <span className="metric-value" style={{ color: 'var(--text-secondary)' }}>--</span>}
+          ) : <span className="metric-value" style={{ ...metricValueStyle, color: 'var(--text-secondary)' }}>--</span>}
         </div>
-        <div className="metric">
-          <span className="metric-label">Worst</span>
-          {metrics.topLoser ? (
-            <span className={`metric-value ${metrics.topLoser.pct >= 0 ? 'trend-positive' : 'trend-negative'}`}>
-              {metrics.topLoser.symbol} {metrics.topLoser.pct >= 0 ? '+' : ''}{metrics.topLoser.pct.toFixed(1)}%
-            </span>
-          ) : <span className="metric-value" style={{ color: 'var(--text-secondary)' }}>--</span>}
-        </div>
+        {!mobile && (
+          <div className="metric">
+            <span className="metric-label">Worst</span>
+            {metrics.topLoser ? (
+              <span className={`metric-value ${metrics.topLoser.pct >= 0 ? 'trend-positive' : 'trend-negative'}`}>
+                {metrics.topLoser.symbol} {metrics.topLoser.pct >= 0 ? '+' : ''}{metrics.topLoser.pct.toFixed(1)}%
+              </span>
+            ) : <span className="metric-value" style={{ color: 'var(--text-secondary)' }}>--</span>}
+          </div>
+        )}
       </div>
 
       {/* ── Allocation donut ── */}
-      <div className="glass-panel alloc-panel">
+      <div className="glass-panel alloc-panel" style={mobile ? fullCol : {}}>
         <h2 style={{ margin: '0 0 0.75rem', fontSize: '1rem', fontWeight: 600 }}>Allocation</h2>
         {metrics.pieData.length === 0 ? (
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', textAlign: 'center', padding: '2rem 0' }}>
@@ -132,7 +148,6 @@ export default function Dashboard({ onNavigate }) {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            {/* Compact legend */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem 0.85rem', marginTop: '0.5rem' }}>
               {metrics.pieData.map((d, i) => (
                 <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
@@ -146,7 +161,7 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* ── Holdings breakdown ── */}
-      <div className="glass-panel db-holdings-panel">
+      <div className="glass-panel db-holdings-panel" style={mobile ? fullCol : {}}>
         <div className="db-holdings-header">
           <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Holdings</h2>
           <span className="db-holdings-count">{holdingRows.length} positions</span>
@@ -155,7 +170,7 @@ export default function Dashboard({ onNavigate }) {
         {holdingRows.length === 0 ? (
           <div className="db-holdings-empty">Add positions in Portfolio to see your holdings here.</div>
         ) : (
-          <div className="db-holdings-list">
+          <div className="db-holdings-list" style={mobile ? { maxHeight: 'none', overflowY: 'visible' } : {}}>
             {holdingRows.map(h => {
               const color = COLORS[h.colorIdx % COLORS.length];
               return (
@@ -191,7 +206,7 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* ── Market Opportunities ── */}
-      <div className="glass-panel" style={{ gridColumn: 'span 12', marginTop: '0.5rem', overflow: 'visible' }}>
+      <div className="glass-panel" style={{ ...fullCol, overflow: 'visible' }}>
         <h2 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Market Opportunities</h2>
         <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
           {momentum.map((stock, i) => {
@@ -206,8 +221,9 @@ export default function Dashboard({ onNavigate }) {
               <div
                 key={i}
                 className="glass-panel momentum-card"
-                style={{ padding: '1rem', cursor: 'default' }}
+                style={{ padding: '1rem', cursor: 'default', flex: '0 0 180px', minWidth: '180px' }}
                 onMouseEnter={e => {
+                  if (mobile) return;
                   const r = e.currentTarget.getBoundingClientRect();
                   setTooltip({ text: rationales[i % rationales.length], x: r.left, y: r.top - 8, width: r.width });
                 }}
@@ -220,12 +236,12 @@ export default function Dashboard({ onNavigate }) {
                       onError={e => { e.target.style.display = 'none'; }} />
                     <strong style={{ fontSize: '1rem' }}>{stock.symbol}</strong>
                   </div>
-                  <div className={isPos ? 'trend-positive' : 'trend-negative'} style={{ fontSize: '0.85rem' }}>
-                    {isPos ? '+' : ''}{stock.changePercent.toFixed(2)}% {isPos ? '▲' : '▼'}
+                  <div className={isPos ? 'trend-positive' : 'trend-negative'} style={{ fontSize: '0.82rem' }}>
+                    {isPos ? '+' : ''}{stock.changePercent.toFixed(2)}%
                   </div>
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stock.name}</div>
-                <div style={{ marginTop: '0.4rem', fontSize: '1.1rem', fontWeight: 700 }}>${stock.price.toFixed(2)}</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '0.2rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stock.name}</div>
+                <div style={{ marginTop: '0.4rem', fontSize: '1.05rem', fontWeight: 700 }}>${stock.price.toFixed(2)}</div>
               </div>
             );
           })}
