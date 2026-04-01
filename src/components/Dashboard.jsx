@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Sector, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 import { usePortfolio } from '../context/PortfolioContext'
 import { fetchMomentum } from '../data/api'
 import { BrainCircuit, TrendingUp, TrendingDown } from 'lucide-react'
@@ -60,6 +60,25 @@ export default function Dashboard({ onNavigate, mobile }) {
   }, []);
 
   const fmt = n => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const [activePieIndex, setActivePieIndex] = useState(null);
+
+  const renderActiveSlice = (props) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent } = props;
+    return (
+      <g>
+        <Sector cx={cx} cy={cy} innerRadius={innerRadius - 4} outerRadius={outerRadius + 14}
+          startAngle={startAngle} endAngle={endAngle} fill={fill} opacity={1} />
+        {/* Stock name in centre */}
+        <text x={cx} y={cy - 10} textAnchor="middle" fill="#fff" fontSize={15} fontWeight={700}>{payload.name}</text>
+        <text x={cx} y={cy + 10} textAnchor="middle" fill={fill} fontSize={12} fontWeight={600}>
+          {(percent * 100).toFixed(1)}%
+        </text>
+        <text x={cx} y={cy + 28} textAnchor="middle" fill="var(--text-secondary)" fontSize={11}>
+          ${fmt(payload.value)}
+        </text>
+      </g>
+    );
+  };
 
   // All layout driven by inline styles from JS-detected `mobile`.
   // CSS media queries use window.innerWidth which Samsung fakes.
@@ -132,21 +151,21 @@ export default function Dashboard({ onNavigate, mobile }) {
                   <Pie
                     data={metrics.pieData}
                     cx="50%" cy="50%"
-                    innerRadius="45%"
-                    outerRadius="70%"
+                    innerRadius="42%"
+                    outerRadius="65%"
                     dataKey="value"
                     stroke="none"
                     paddingAngle={2}
+                    activeIndex={activePieIndex}
+                    activeShape={renderActiveSlice}
+                    onMouseEnter={(_, i) => setActivePieIndex(i)}
+                    onMouseLeave={() => setActivePieIndex(null)}
                   >
                     {metrics.pieData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      <Cell key={i} fill={COLORS[i % COLORS.length]}
+                        opacity={activePieIndex === null || activePieIndex === i ? 1 : 0.45} />
                     ))}
                   </Pie>
-                  <RechartsTooltip
-                    formatter={(v, name) => [`$${fmt(v)} (${metrics.totalValue > 0 ? ((v/metrics.totalValue)*100).toFixed(1) : 0}%)`, name]}
-                    contentStyle={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', fontSize: '0.82rem' }}
-                    itemStyle={{ color: 'var(--text-primary)' }}
-                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
