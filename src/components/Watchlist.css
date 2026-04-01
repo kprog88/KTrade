@@ -1,0 +1,130 @@
+/* ── Watchlist grid ─────────────────────────────────────────────────────── */
+
+.wl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* ── Card ── */
+.wl-card {
+  position: relative;
+  transition: box-shadow 0.2s;
+  cursor: default;
+}
+
+.wl-card--expanded {
+  grid-column: 1 / -1;   /* full width when expanded */
+}
+
+.wl-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.wl-card-top:hover .wl-chevron {
+  color: var(--accent-color);
+}
+
+.wl-chevron {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: transform 0.25s, color 0.2s;
+}
+
+.wl-chevron.open {
+  transform: rotate(180deg);
+  color: var(--accent-color);
+}
+
+.wl-remove {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+  z-index: 2;
+}
+
+.wl-remove:hover {
+  color: var(--danger-color);
+}
+
+/* ── TA chart panel ── */
+.wl-ta-wrap {
+  margin-top: 1rem;
+  border-top: 1px solid var(--panel-border);
+  padding-top: 1rem;
+}
+
+.wl-ta-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.wl-ta-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.wl-ta-legend {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.wl-ta-leg-item {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wl-ta-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  padding: 0.2rem;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.wl-ta-close:hover {
+  color: var(--text-primary);
+}
+
+.wl-ta-loading {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  padding: 2rem 0;
+}
+
+/* ── Mobile ── */
+@media (max-width: 1024px) {
+  .wl-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wl-ta-legend {
+    gap: 0.5rem;
+  }
+}
