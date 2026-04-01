@@ -312,7 +312,7 @@
 }
 
 /* Mobile */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .learn-result-title {
     font-size: 1.1rem;
   }

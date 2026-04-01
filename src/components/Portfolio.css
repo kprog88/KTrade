@@ -130,7 +130,7 @@
 .text-secondary { color: var(--text-secondary); }
 
 /* Mobile specific */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .portfolio-table th,
   .portfolio-table td {
     padding: 0.6rem 0.4rem;
