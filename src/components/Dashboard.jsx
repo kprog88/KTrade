@@ -78,6 +78,11 @@ export default function Dashboard({ onNavigate, mobile }) {
   return (
     <div className="dashboard-grid" style={gridStyle}>
 
+      {/* ── DEBUG — remove after diagnosis ── */}
+      <div style={{ gridColumn: '1 / -1', background: '#1e1b4b', color: '#a5b4fc', fontSize: '0.7rem', padding: '0.4rem 0.75rem', borderRadius: 8, fontFamily: 'monospace' }}>
+        screen: {screen.width}×{screen.height} | innerWidth: {window.innerWidth} | mobile prop: {String(mobile)}
+      </div>
+
       {/* ── Metrics bar ── */}
       <div className="glass-panel portfolio-overview" style={{ ...fullCol, ...metricStyle }}>
         <div className="metric">
