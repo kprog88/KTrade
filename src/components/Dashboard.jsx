@@ -64,7 +64,9 @@ export default function Dashboard({ onNavigate, mobile }) {
   // All layout driven by inline styles from JS-detected `mobile`.
   // CSS media queries use window.innerWidth which Samsung fakes.
   // screen.width (used in App.jsx) cannot be faked — so we trust this prop.
-  const fullCol  = { gridColumn: '1 / -1' };
+  // min-width:0 on every panel prevents grid items from sizing to content
+  // (default min-width:auto lets children like flex rows expand beyond the column)
+  const fullCol  = { gridColumn: '1 / -1', minWidth: 0 };
   const gridStyle = mobile
     ? { gridTemplateColumns: '1fr', gap: '0.85rem' }
     : {};
@@ -77,11 +79,6 @@ export default function Dashboard({ onNavigate, mobile }) {
 
   return (
     <div className="dashboard-grid" style={gridStyle}>
-
-      {/* ── DEBUG — remove after diagnosis ── */}
-      <div style={{ gridColumn: '1 / -1', background: '#1e1b4b', color: '#a5b4fc', fontSize: '0.7rem', padding: '0.4rem 0.75rem', borderRadius: 8, fontFamily: 'monospace' }}>
-        screen: {screen.width}×{screen.height} | innerWidth: {window.innerWidth} | mobile prop: {String(mobile)}
-      </div>
 
       {/* ── Metrics bar ── */}
       <div className="glass-panel portfolio-overview" style={{ ...fullCol, ...metricStyle }}>
@@ -120,8 +117,8 @@ export default function Dashboard({ onNavigate, mobile }) {
         )}
       </div>
 
-      {/* ── Allocation donut ── */}
-      <div className="glass-panel alloc-panel" style={mobile ? fullCol : {}}>
+      {/* ── Allocation donut — hidden on mobile ── */}
+      {!mobile && <div className="glass-panel alloc-panel">
         <h2 style={{ margin: '0 0 0.75rem', fontSize: '1rem', fontWeight: 600 }}>Allocation</h2>
         {metrics.pieData.length === 0 ? (
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', textAlign: 'center', padding: '2rem 0' }}>
@@ -163,10 +160,10 @@ export default function Dashboard({ onNavigate, mobile }) {
             </div>
           </>
         )}
-      </div>
+      </div>}
 
       {/* ── Holdings breakdown ── */}
-      <div className="glass-panel db-holdings-panel" style={mobile ? fullCol : {}}>
+      <div className="glass-panel db-holdings-panel" style={mobile ? fullCol : { minWidth: 0 }}>
         <div className="db-holdings-header">
           <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Holdings</h2>
           <span className="db-holdings-count">{holdingRows.length} positions</span>
@@ -211,7 +208,7 @@ export default function Dashboard({ onNavigate, mobile }) {
       </div>
 
       {/* ── Market Opportunities ── */}
-      <div className="glass-panel" style={{ ...fullCol, overflow: 'visible' }}>
+      <div className="glass-panel" style={{ ...fullCol, overflow: mobile ? 'hidden' : 'visible' }}>
         <h2 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Market Opportunities</h2>
         <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
           {momentum.map((stock, i) => {
