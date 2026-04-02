@@ -47,14 +47,25 @@ function MiniChart({ chartData, isPositive }) {
 
 // ── Expanded TA chart ────────────────────────────────────────────────────────
 
+function ma200w(weeklyData) {
+  if (weeklyData.length < 200) return null;
+  const last200 = weeklyData.slice(-200);
+  return last200.reduce((s, d) => s + d.value, 0) / 200;
+}
+
 function TAChart({ symbol, onClose }) {
-  const [chartData, setChartData] = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [chartData, setChartData]   = useState([]);
+  const [ma200val, setMa200val]     = useState(null);
+  const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetchChart(symbol, '1mo').then(data => {
-      setChartData(data || []);
+    Promise.all([
+      fetchChart(symbol, '1mo'),
+      fetchChart(symbol, '5y'),
+    ]).then(([monthly, weekly]) => {
+      setChartData(monthly || []);
+      setMa200val(ma200w(weekly || []));
       setLoading(false);
     });
   }, [symbol]);
@@ -111,6 +122,7 @@ function TAChart({ symbol, onClose }) {
           {ma50vals.some(v => v !== null) && (
             <span className="wl-ta-leg-item" style={{ color: '#ec4899' }}>── MA50</span>
           )}
+          {ma200val   && <span className="wl-ta-leg-item" style={{ color: '#38bdf8' }}>── MA200W</span>}
           {support    && <span className="wl-ta-leg-item" style={{ color: 'var(--success-color)' }}>── Support</span>}
           {resistance && <span className="wl-ta-leg-item" style={{ color: 'var(--danger-color)' }}>── Resistance</span>}
         </div>
@@ -129,6 +141,12 @@ function TAChart({ symbol, onClose }) {
             formatter={(v, name) => [fmt(v), name]}
             labelStyle={{ color: 'var(--text-secondary)', marginBottom: 4 }}
           />
+
+          {/* 200-week MA — major long-term support level */}
+          {ma200val && domain[0] <= ma200val && ma200val <= domain[1] && (
+            <ReferenceLine y={+ma200val.toFixed(2)} stroke="#38bdf8" strokeDasharray="6 3" strokeWidth={2}
+              label={{ value: `MA200W ${fmt(ma200val)}`, position: 'insideTopRight', fontSize: 10, fill: '#38bdf8' }} />
+          )}
 
           {/* Support & resistance */}
           {support && (
