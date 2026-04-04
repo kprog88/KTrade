@@ -26,7 +26,7 @@
 }
 
 .btn-primary:hover {
-  background: #7c3aed;
+  background: #059669; /* Darker Emerald */
   transform: translateY(-1px);
 }
 
@@ -65,19 +65,20 @@
 }
 
 .form-input {
-  background: rgba(13, 14, 21, 0.5);
+  background: rgba(5, 7, 10, 0.6);
   border: 1px solid var(--panel-border);
   color: var(--text-primary);
   padding: 0.75rem;
   border-radius: 8px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
   width: 100%;
   max-width: 100%;
 }
 
 .form-input:focus {
   border-color: var(--accent-color);
+  background: rgba(16, 185, 129, 0.05);
 }
 
 .table-container {
@@ -105,6 +106,14 @@
   border-bottom: 1px solid rgba(255,255,255,0.02);
 }
 
+.portfolio-table tr {
+  transition: background 0.2s;
+}
+
+.portfolio-table tr:hover td {
+  background: rgba(16, 185, 129, 0.03);
+}
+
 .asset-info {
   display: flex;
   align-items: center;
@@ -123,7 +132,7 @@
   font-size: 1rem;
 }
 
-.accent-bg { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+.accent-bg { background: rgba(16, 185, 129, 0.2); color: #34d399; }
 .success-bg { background: rgba(16, 185, 129, 0.2); color: #34d399; }
 
 .text-sm { font-size: 0.85rem; }

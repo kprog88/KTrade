@@ -1,30 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --bg-color: #08090f;
-  --panel-bg: rgba(255, 255, 255, 0.04);
-  --panel-border: rgba(255, 255, 255, 0.07);
-  --text-primary: #f0f2ff;
-  --text-secondary: #7c8db5;
-  --accent-color: #6366f1;
-  --accent-glow: rgba(99, 102, 241, 0.4);
-  --success-color: #22d3a5;
+  --bg-color: #05070a;
+  --panel-bg: rgba(255, 255, 255, 0.035);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-color: #10b981; /* Emerald Green */
+  --accent-glow: rgba(16, 185, 129, 0.25);
+  --success-color: #34d399; /* Mint */
   --danger-color: #f43f5e;
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-  --glass-blur: 14px;
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+  --glass-blur: 16px;
 }
 
 [data-theme='light'] {
-  --bg-color: #f4f6fb;
-  --panel-bg: rgba(255, 255, 255, 0.92);
-  --panel-border: rgba(0, 0, 0, 0.08);
-  --text-primary: #0d1130;
-  --text-secondary: #4a5578;
-  --accent-color: #4f46e5;
-  --success-color: #059669;
+  --bg-color: #f8fafc;
+  --panel-bg: rgba(255, 255, 255, 0.95);
+  --panel-border: rgba(0, 0, 0, 0.06);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent-color: #059669; /* Darker Emerald */
+  --success-color: #10b981;
   --danger-color: #e11d48;
-  --accent-glow: rgba(79, 70, 229, 0.25);
-  --glass-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.07);
+  --accent-glow: rgba(16, 185, 129, 0.15);
+  --glass-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.05);
 }
 
 .autocomplete-dropdown {

@@ -9,8 +9,15 @@
 /* ── Card ── */
 .wl-card {
   position: relative;
-  transition: box-shadow 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: default;
+  border: 1px solid var(--panel-border);
+}
+
+.wl-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-color);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--accent-glow);
 }
 
 .wl-card--expanded {

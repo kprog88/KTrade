@@ -5,7 +5,7 @@ import { fetchMomentum } from '../data/api'
 import { BrainCircuit, TrendingUp, TrendingDown } from 'lucide-react'
 import './Dashboard.css'
 
-const COLORS = ['#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1', '#f43f5e'];
+const COLORS = ['#10b981', '#14b8a6', '#0fa5e9', '#34d399', '#059669', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899'];
 
 export default function Dashboard({ onNavigate, mobile }) {
   const { holdings } = usePortfolio();
