@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   ComposedChart, Line, Bar, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, ReferenceLine, Cell
+  ReferenceLine, Cell
 } from 'recharts'
 import { TrendingUp, BarChart2, Activity, Building2, UserCheck, AlertTriangle, ChevronDown } from 'lucide-react'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -322,6 +322,32 @@ function buildInstInterpretation(inst) {
   return parts;
 }
 
+// ─── CHART WIDTH HOOK ───────────────────────────────────────────────────────
+// ResizeObserver-based hook: always returns the real pixel width of a container.
+// This replaces ResponsiveContainer which cannot measure inside CSS-grid accordions.
+
+function useChartWidth() {
+  const ref = useRef(null);
+  const [width, setWidth] = useState(0);
+
+  const measure = useCallback(() => {
+    if (ref.current) {
+      const w = ref.current.getBoundingClientRect().width;
+      if (w > 0) setWidth(Math.floor(w));
+    }
+  }, []);
+
+  useEffect(() => {
+    measure();
+    if (!ref.current) return;
+    const obs = new ResizeObserver(measure);
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [measure]);
+
+  return [ref, width];
+}
+
 // ─── CHART CONSTANTS ────────────────────────────────────────────────────────
 
 const CHART_TABS = ['Price & MAs', 'RSI', 'MACD', 'Volume'];
@@ -355,6 +381,9 @@ function StockCard({ holding, isActive, onSignalReady }) {
   const [instLoading,  setInstLoading]  = useState(true);
   const [instError,    setInstError]    = useState(null);
   const hasFetched = useRef(false);
+  const [chartRef, chartWidth] = useChartWidth();
+
+
 
   // Only fetch data on first open — stays cached if user closes and reopens
   useEffect(() => {
@@ -429,8 +458,13 @@ function StockCard({ holding, isActive, onSignalReady }) {
 
   const toggleMA = key => setVisibleMAs(p => ({ ...p, [key]: !p[key] }));
 
+  const CHART_H = 265;
+
   function renderChart() {
-    const common = { data: chartData, margin: { top: 5, right: 8, left: 0, bottom: 5 } };
+    // chartWidth comes from ResizeObserver on the chart container div.
+    // We only render once we have a real measured width > 0.
+    if (!chartWidth) return null;
+    const common = { data: chartData, width: chartWidth, height: CHART_H, margin: { top: 5, right: 8, left: 0, bottom: 5 } };
 
     if (activeTab === 'Price & MAs') {
       return (
@@ -449,103 +483,96 @@ function StockCard({ holding, isActive, onSignalReady }) {
               </button>
             ))}
           </div>
-          <ResponsiveContainer width="100%" height={265}>
-            <ComposedChart {...common}>
-              <defs>
-                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}   />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
-              <YAxis domain={['auto', 'auto']} tick={axisStyle} width={62}
-                tickLine={false} axisLine={false} tickFormatter={v => v?.toFixed(0)} />
-              <Tooltip contentStyle={tooltipStyle}
-                formatter={(v, n) => [`${sym}${v?.toFixed(2)}`, n]} />
-              <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '6px' }} />
-              <Area type="monotone" dataKey="close" name="Price" stroke="#8b5cf6"
-                fill={`url(#${gradId})`} fillOpacity={1} strokeWidth={2}
-                dot={false} activeDot={{ r: 3 }} />
-              {visibleMAs.ma20 && (
-                <Line type="monotone" dataKey="sma20" name="MA 20" stroke="#3b82f6"
-                  strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
-              )}
-              {visibleMAs.ma50 && (
-                <Line type="monotone" dataKey="sma50" name="MA 50" stroke="#f59e0b"
-                  strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
-              )}
-              {visibleMAs.ma150 && (
-                <Line type="monotone" dataKey="sma150" name="MA 150" stroke="#ec4899"
-                  strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
-              )}
-              <Line type="monotone" dataKey="bolUpper" name="BB Upper"
-                stroke="rgba(148,163,184,0.4)" strokeWidth={1}
-                dot={false} strokeDasharray="2 3" connectNulls />
-              <Line type="monotone" dataKey="bolLower" name="BB Lower"
-                stroke="rgba(148,163,184,0.4)" strokeWidth={1}
-                dot={false} strokeDasharray="2 3" connectNulls />
-            </ComposedChart>
-          </ResponsiveContainer>
+          <ComposedChart {...common}>
+            <defs>
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}   />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+            <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
+            <YAxis domain={['auto', 'auto']} tick={axisStyle} width={62}
+              tickLine={false} axisLine={false} tickFormatter={v => v?.toFixed(0)} />
+            <Tooltip contentStyle={tooltipStyle}
+              formatter={(v, n) => [`${sym}${v?.toFixed(2)}`, n]} />
+            <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '6px' }} />
+            <Area type="monotone" dataKey="close" name="Price" stroke="#8b5cf6"
+              fill={`url(#${gradId})`} fillOpacity={1} strokeWidth={2}
+              dot={false} activeDot={{ r: 3 }} />
+            {visibleMAs.ma20 && (
+              <Line type="monotone" dataKey="sma20" name="MA 20" stroke="#3b82f6"
+                strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
+            )}
+            {visibleMAs.ma50 && (
+              <Line type="monotone" dataKey="sma50" name="MA 50" stroke="#f59e0b"
+                strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
+            )}
+            {visibleMAs.ma150 && (
+              <Line type="monotone" dataKey="sma150" name="MA 150" stroke="#ec4899"
+                strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
+            )}
+            <Line type="monotone" dataKey="bolUpper" name="BB Upper"
+              stroke="rgba(148,163,184,0.4)" strokeWidth={1}
+              dot={false} strokeDasharray="2 3" connectNulls />
+            <Line type="monotone" dataKey="bolLower" name="BB Lower"
+              stroke="rgba(148,163,184,0.4)" strokeWidth={1}
+              dot={false} strokeDasharray="2 3" connectNulls />
+          </ComposedChart>
         </>
       );
     }
 
     if (activeTab === 'RSI') {
       return (
-        <ResponsiveContainer width="100%" height={265}>
-          <ComposedChart {...common}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
-            <YAxis domain={[0, 100]} tick={axisStyle} width={32}
-              tickLine={false} axisLine={false} ticks={[0, 30, 50, 70, 100]} />
-            <Tooltip contentStyle={tooltipStyle}
-              formatter={v => [v?.toFixed(1), 'RSI']} />
-            <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="4 2" strokeWidth={1.5}
-              label={{ value: '70 — Overbought', position: 'insideTopRight',
-                style: { fontSize: 10, fill: '#ef4444' } }} />
-            <ReferenceLine y={50} stroke="rgba(255,255,255,0.18)" strokeDasharray="3 3" strokeWidth={1} />
-            <ReferenceLine y={30} stroke="#10b981" strokeDasharray="4 2" strokeWidth={1.5}
-              label={{ value: '30 — Oversold', position: 'insideBottomRight',
-                style: { fontSize: 10, fill: '#10b981' } }} />
-            <Area type="monotone" dataKey="rsi" name="RSI(14)"
-              stroke="#8b5cf6" fill="rgba(139,92,246,0.12)"
-              strokeWidth={2} dot={false} activeDot={{ r: 3 }} connectNulls />
-          </ComposedChart>
-        </ResponsiveContainer>
+        <ComposedChart {...common}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
+          <YAxis domain={[0, 100]} tick={axisStyle} width={32}
+            tickLine={false} axisLine={false} ticks={[0, 30, 50, 70, 100]} />
+          <Tooltip contentStyle={tooltipStyle}
+            formatter={v => [v?.toFixed(1), 'RSI']} />
+          <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="4 2" strokeWidth={1.5}
+            label={{ value: '70 — Overbought', position: 'insideTopRight',
+              style: { fontSize: 10, fill: '#ef4444' } }} />
+          <ReferenceLine y={50} stroke="rgba(255,255,255,0.18)" strokeDasharray="3 3" strokeWidth={1} />
+          <ReferenceLine y={30} stroke="#10b981" strokeDasharray="4 2" strokeWidth={1.5}
+            label={{ value: '30 — Oversold', position: 'insideBottomRight',
+              style: { fontSize: 10, fill: '#10b981' } }} />
+          <Area type="monotone" dataKey="rsi" name="RSI(14)"
+            stroke="#8b5cf6" fill="rgba(139,92,246,0.12)"
+            strokeWidth={2} dot={false} activeDot={{ r: 3 }} connectNulls />
+        </ComposedChart>
       );
     }
 
     if (activeTab === 'MACD') {
       return (
-        <ResponsiveContainer width="100%" height={265}>
-          <ComposedChart {...common}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
-            <YAxis tick={axisStyle} width={52}
-              tickLine={false} axisLine={false} tickFormatter={v => v?.toFixed(2)} />
-            <Tooltip contentStyle={tooltipStyle}
-              formatter={(v, n) => [v?.toFixed(4), n]} />
-            <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '6px' }} />
-            <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
-            <Bar dataKey="hist" name="Histogram" radius={[2, 2, 0, 0]} maxBarSize={8}>
-              {chartData.map((d, i) => (
-                <Cell key={i} fill={d.hist >= 0 ? '#10b981' : '#ef4444'} opacity={0.8} />
-              ))}
-            </Bar>
-            <Line type="monotone" dataKey="macd"   name="MACD"   stroke="#3b82f6"
-              strokeWidth={2}   dot={false} connectNulls />
-            <Line type="monotone" dataKey="signal" name="Signal" stroke="#f59e0b"
-              strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
-          </ComposedChart>
-        </ResponsiveContainer>
+        <ComposedChart {...common}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
+          <YAxis tick={axisStyle} width={52}
+            tickLine={false} axisLine={false} tickFormatter={v => v?.toFixed(2)} />
+          <Tooltip contentStyle={tooltipStyle}
+            formatter={(v, n) => [v?.toFixed(4), n]} />
+          <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '6px' }} />
+          <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+          <Bar dataKey="hist" name="Histogram" radius={[2, 2, 0, 0]} maxBarSize={8}>
+            {chartData.map((d, i) => (
+              <Cell key={i} fill={d.hist >= 0 ? '#10b981' : '#ef4444'} opacity={0.8} />
+            ))}
+          </Bar>
+          <Line type="monotone" dataKey="macd"   name="MACD"   stroke="#3b82f6"
+            strokeWidth={2}   dot={false} connectNulls />
+          <Line type="monotone" dataKey="signal" name="Signal" stroke="#f59e0b"
+            strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
+        </ComposedChart>
       );
     }
 
     // Volume
     return (
-      <ResponsiveContainer width="100%" height={265}>
-        <ComposedChart {...common}>
+      <ComposedChart {...common}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
           <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
           <YAxis tick={axisStyle} width={52}
@@ -559,7 +586,6 @@ function StockCard({ holding, isActive, onSignalReady }) {
             ))}
           </Bar>
         </ComposedChart>
-      </ResponsiveContainer>
     );
   }
 
@@ -607,7 +633,10 @@ function StockCard({ holding, isActive, onSignalReady }) {
           </div>
 
           {/* ── Chart ── */}
-          <div className="ta-chart-area">{renderChart()}</div>
+          {/* chartRef gives ResizeObserver the real pixel width — fixes mobile rendering */}
+          <div ref={chartRef} className="ta-chart-area" style={{ width: '100%', height: 265, overflow: 'hidden' }}>
+            {renderChart()}
+          </div>
 
           {/* ── Signal Badges ── */}
           {sigData && (

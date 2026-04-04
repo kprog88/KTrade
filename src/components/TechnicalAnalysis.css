@@ -119,6 +119,10 @@
   overflow: hidden;
 }
 
+.ta-acc-body.open .ta-acc-body-inner {
+  overflow: visible;
+}
+
 /* StockCard content inside accordion */
 .ta-card-body {
   padding: 0 1.25rem 1.25rem;
@@ -703,12 +707,14 @@
   .ta-plain-summary   { padding: 1rem; }
   .ta-plain-headline p { font-size: 0.88rem; }
 
-  /* Chart container: ensure no horizontal overflow */
+  /* Chart container: ensure charts have space and don't overflow horizontally */
   .ta-chart-area {
-    overflow: hidden;
+    overflow: visible;
     max-width: 100%;
   }
-  .ta-chart-area .recharts-wrapper {
+  .ta-chart-area .recharts-wrapper,
+  .ta-chart-area .recharts-surface {
     max-width: 100% !important;
+    overflow: visible !important;
   }
 }

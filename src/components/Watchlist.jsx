@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { fetchQuote, fetchChart, fetchSearch } from '../data/api'
 import {
   ComposedChart, Line, ReferenceLine,
-  XAxis, YAxis, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, Tooltip,
   LineChart
 } from 'recharts'
 import { useAuth } from '../context/AuthContext'
@@ -10,6 +10,26 @@ import { db } from '../firebase'
 import { X, ChevronDown } from 'lucide-react'
 import './Portfolio.css'
 import './Watchlist.css'
+
+// ── ResizeObserver width hook — same pattern as TechnicalAnalysis ─────────────
+function useChartWidth() {
+  const ref = useRef(null);
+  const [width, setWidth] = useState(0);
+  const measure = useCallback(() => {
+    if (ref.current) {
+      const w = ref.current.getBoundingClientRect().width;
+      if (w > 0) setWidth(Math.floor(w));
+    }
+  }, []);
+  useEffect(() => {
+    measure();
+    if (!ref.current) return;
+    const obs = new ResizeObserver(measure);
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [measure]);
+  return [ref, width];
+}
 
 // ── Indicators ──────────────────────────────────────────────────────────────
 
@@ -34,14 +54,17 @@ function supportResistance(data) {
 // ── Mini chart inside each card ─────────────────────────────────────────────
 
 function MiniChart({ chartData, isPositive }) {
+  const [ref, width] = useChartWidth();
   return (
-    <ResponsiveContainer width="100%" height={80}>
-      <LineChart data={chartData}>
-        <YAxis domain={['auto', 'auto']} hide />
-        <Line type="monotone" dataKey="value" stroke={isPositive ? 'var(--success-color)' : 'var(--danger-color)'}
-          strokeWidth={2} dot={false} isAnimationActive={false} />
-      </LineChart>
-    </ResponsiveContainer>
+    <div ref={ref} style={{ width: '100%', height: 80 }}>
+      {width > 0 && (
+        <LineChart data={chartData} width={width} height={80}>
+          <YAxis domain={['auto', 'auto']} hide />
+          <Line type="monotone" dataKey="value" stroke={isPositive ? 'var(--success-color)' : 'var(--danger-color)'}
+            strokeWidth={2} dot={false} isAnimationActive={false} />
+        </LineChart>
+      )}
+    </div>
   );
 }
 
@@ -57,6 +80,7 @@ function TAChart({ symbol, onClose }) {
   const [chartData, setChartData]   = useState([]);
   const [ma200val, setMa200val]     = useState(null);
   const [loading, setLoading]       = useState(true);
+  const [chartRef, chartWidth]      = useChartWidth();
 
   useEffect(() => {
     setLoading(true);
@@ -113,63 +137,58 @@ function TAChart({ symbol, onClose }) {
   const fmt = v => `$${v?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="wl-ta-wrap">
-      <div className="wl-ta-header">
-        <span className="wl-ta-title">{symbol} — 30-Day Chart</span>
-        <div className="wl-ta-legend">
-          <span className="wl-ta-leg-item" style={{ color: '#6366f1' }}>── Price</span>
-          <span className="wl-ta-leg-item" style={{ color: '#f59e0b' }}>── MA20</span>
-          {ma50vals.some(v => v !== null) && (
-            <span className="wl-ta-leg-item" style={{ color: '#ec4899' }}>── MA50</span>
-          )}
-          {ma200val   && <span className="wl-ta-leg-item" style={{ color: '#38bdf8' }}>── MA200W</span>}
-          {support    && <span className="wl-ta-leg-item" style={{ color: 'var(--success-color)' }}>── Support</span>}
-          {resistance && <span className="wl-ta-leg-item" style={{ color: 'var(--danger-color)' }}>── Resistance</span>}
+      <div className="wl-ta-wrap">
+        <div className="wl-ta-header">
+          <span className="wl-ta-title">{symbol} — 30-Day Chart</span>
+          <div className="wl-ta-legend">
+            <span className="wl-ta-leg-item" style={{ color: '#6366f1' }}>—— Price</span>
+            <span className="wl-ta-leg-item" style={{ color: '#f59e0b' }}>—— MA20</span>
+            {ma50vals.some(v => v !== null) && (
+              <span className="wl-ta-leg-item" style={{ color: '#ec4899' }}>—— MA50</span>
+            )}
+            {ma200val   && <span className="wl-ta-leg-item" style={{ color: '#38bdf8' }}>—— MA200W</span>}
+            {support    && <span className="wl-ta-leg-item" style={{ color: 'var(--success-color)' }}>—— Support</span>}
+            {resistance && <span className="wl-ta-leg-item" style={{ color: 'var(--danger-color)' }}>—— Resistance</span>}
+          </div>
+          <button className="wl-ta-close" onClick={onClose}><X size={16} /></button>
         </div>
-        <button className="wl-ta-close" onClick={onClose}><X size={16} /></button>
+
+        {/* chartRef measures the real pixel width via ResizeObserver */}
+        <div ref={chartRef} style={{ width: '100%', height: 260 }}>
+          {chartWidth > 0 && (
+            <ComposedChart data={enriched} width={chartWidth} height={260} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
+                tickLine={false} axisLine={false} interval="preserveStartEnd" />
+              <YAxis domain={domain} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
+                tickLine={false} axisLine={false} tickFormatter={v => `$${v}`} width={52} />
+              <Tooltip
+                contentStyle={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: 8, fontSize: '0.78rem' }}
+                itemStyle={{ color: 'var(--text-primary)' }}
+                formatter={(v, name) => [fmt(v), name]}
+                labelStyle={{ color: 'var(--text-secondary)', marginBottom: 4 }}
+              />
+              {ma200val && domain[0] <= ma200val && ma200val <= domain[1] && (
+                <ReferenceLine y={+ma200val.toFixed(2)} stroke="#38bdf8" strokeDasharray="6 3" strokeWidth={2}
+                  label={{ value: `MA200W ${fmt(ma200val)}`, position: 'insideTopRight', fontSize: 10, fill: '#38bdf8' }} />
+              )}
+              {support && (
+                <ReferenceLine y={support} stroke="var(--success-color)" strokeDasharray="4 3" strokeWidth={1.5}
+                  label={{ value: `S ${fmt(support)}`, position: 'insideTopLeft', fontSize: 10, fill: 'var(--success-color)' }} />
+              )}
+              {resistance && (
+                <ReferenceLine y={resistance} stroke="var(--danger-color)" strokeDasharray="4 3" strokeWidth={1.5}
+                  label={{ value: `R ${fmt(resistance)}`, position: 'insideBottomLeft', fontSize: 10, fill: 'var(--danger-color)' }} />
+              )}
+              <Line type="monotone" dataKey="ma50" stroke="#ec4899" strokeWidth={1.5}
+                dot={false} isAnimationActive={false} connectNulls name="MA50" />
+              <Line type="monotone" dataKey="ma20" stroke="#f59e0b" strokeWidth={1.5}
+                dot={false} isAnimationActive={false} connectNulls name="MA20" />
+              <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2}
+                dot={false} isAnimationActive={false} name="Price" />
+            </ComposedChart>
+          )}
+        </div>
       </div>
-
-      <ResponsiveContainer width="100%" height={260}>
-        <ComposedChart data={enriched} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
-            tickLine={false} axisLine={false} interval="preserveStartEnd" />
-          <YAxis domain={domain} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
-            tickLine={false} axisLine={false} tickFormatter={v => `$${v}`} width={52} />
-          <Tooltip
-            contentStyle={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: 8, fontSize: '0.78rem' }}
-            itemStyle={{ color: 'var(--text-primary)' }}
-            formatter={(v, name) => [fmt(v), name]}
-            labelStyle={{ color: 'var(--text-secondary)', marginBottom: 4 }}
-          />
-
-          {/* 200-week MA — major long-term support level */}
-          {ma200val && domain[0] <= ma200val && ma200val <= domain[1] && (
-            <ReferenceLine y={+ma200val.toFixed(2)} stroke="#38bdf8" strokeDasharray="6 3" strokeWidth={2}
-              label={{ value: `MA200W ${fmt(ma200val)}`, position: 'insideTopRight', fontSize: 10, fill: '#38bdf8' }} />
-          )}
-
-          {/* Support & resistance */}
-          {support && (
-            <ReferenceLine y={support} stroke="var(--success-color)" strokeDasharray="4 3" strokeWidth={1.5}
-              label={{ value: `S ${fmt(support)}`, position: 'insideTopLeft', fontSize: 10, fill: 'var(--success-color)' }} />
-          )}
-          {resistance && (
-            <ReferenceLine y={resistance} stroke="var(--danger-color)" strokeDasharray="4 3" strokeWidth={1.5}
-              label={{ value: `R ${fmt(resistance)}`, position: 'insideBottomLeft', fontSize: 10, fill: 'var(--danger-color)' }} />
-          )}
-
-          {/* Moving averages */}
-          <Line type="monotone" dataKey="ma50" stroke="#ec4899" strokeWidth={1.5}
-            dot={false} isAnimationActive={false} connectNulls name="MA50" />
-          <Line type="monotone" dataKey="ma20" stroke="#f59e0b" strokeWidth={1.5}
-            dot={false} isAnimationActive={false} connectNulls name="MA20" />
-
-          {/* Price */}
-          <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2}
-            dot={false} isAnimationActive={false} name="Price" />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
   );
 }
 
