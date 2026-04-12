@@ -90,7 +90,9 @@ body::after {
   padding: 1.5rem;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   max-width: 100%;
-  overflow: hidden;
+  /* overflow: hidden removed — it was clipping accordion chart containers;
+     overflow-x: hidden alone keeps horizontal scroll in check */
+  overflow-x: hidden;
 }
 
 .glass-panel:hover {

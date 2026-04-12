@@ -16,7 +16,7 @@
 
 .ta-acc-item {
   padding: 0;
-  overflow: hidden;
+  overflow: clip; /* stronger than hidden — clips without affecting layout */
   transition: box-shadow 0.25s ease;
 }
 
@@ -190,8 +190,8 @@
 
 .ta-chart-area {
   margin-bottom: 1.25rem;
-  /* Prevent chart overflow from clipping */
-  overflow: visible;
+  overflow: visible; /* allow recharts SVG labels to render outside bounds */
+  min-height: 240px;
 }
 
 /* ─── SIGNAL BADGES ───────────────────────────────────────────────────────── */
@@ -692,7 +692,7 @@
   .ta-acc-price       { font-size: 0.9rem; }
   .ta-acc-trigger     { padding: 0.75rem 0.85rem; gap: 0.4rem; flex-wrap: wrap; }
   .ta-acc-right       { gap: 0.4rem; }
-  .ta-card-body       { padding: 0 0.85rem 0.85rem; gap: 1rem; }
+  .ta-card-body       { padding: 0 0.75rem 0.75rem; gap: 1rem; }
   .ta-tab             { padding: 0.3rem 0.55rem; font-size: 0.72rem; }
   .ta-tabs            { gap: 0.3rem; }
   .ta-badge           { min-width: 76px; padding: 0.3rem 0.6rem; }
@@ -707,14 +707,20 @@
   .ta-plain-summary   { padding: 1rem; }
   .ta-plain-headline p { font-size: 0.88rem; }
 
-  /* Chart container: ensure charts have space and don't overflow horizontally */
+  /* Chart container: fill width, allow recharts to paint correctly */
   .ta-chart-area {
+    width: 100%;
     overflow: visible;
-    max-width: 100%;
+    /* Recharts SVG must not overflow the device screen horizontally */
   }
-  .ta-chart-area .recharts-wrapper,
-  .ta-chart-area .recharts-surface {
+
+  /* Force recharts wrapper to honor the measured width */
+  .ta-chart-area .recharts-wrapper {
+    width: 100% !important;
     max-width: 100% !important;
+    overflow: visible !important;
+  }
+  .ta-chart-area .recharts-surface {
     overflow: visible !important;
   }
 }

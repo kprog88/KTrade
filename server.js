@@ -4,6 +4,9 @@ import cors from 'cors';
 import learnHandler from './api/learn.js';
 import aiInsightsHandler from './api/ai-insights.js';
 import marketNewsHandler from './api/market-news.js';
+import YahooFinance from 'yahoo-finance2';
+
+const _yf = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
 
 const app = express();
 app.use(cors());
@@ -13,56 +16,42 @@ app.use(express.json());
 app.get('/api/quote', async (req, res) => {
   try {
     const symbol = req.query.symbol;
-    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`);
-    const data = await response.json();
-    
-    if (!data.chart.result) throw new Error('No data');
-    const meta = data.chart.result[0].meta;
-    const currency = meta.currency || 'USD';
-    
-    let exchangeRate = 1;
+    const q = await _yf.quote(symbol);
+
+    const currency = q.currency || 'USD';
     let currencySymbol = '$';
-    
-    if (currency !== 'USD') {
-      try {
-        let fxSymbol = `${currency}USD=X`;
-        let divisor = 1;
-        
-        if (currency === 'GBp') {
-          fxSymbol = 'GBPUSD=X';
-          divisor = 100;
-        } else if (currency === 'ILA') {
-          fxSymbol = 'ILSUSD=X';
-          divisor = 100;
-        }
-        
-        const fxRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${fxSymbol}?interval=1d&range=1d`);
-        const fxData = await fxRes.json();
-        const fxMeta = fxData.chart.result[0].meta;
-        exchangeRate = fxMeta.regularMarketPrice / divisor;
-      } catch (e) {
-        console.warn('Failed to fetch exchange rate for', currency);
-      }
-    }
-    
-    // Map nice currency symbols for frontend
     if (currency === 'EUR') currencySymbol = '€';
     else if (currency === 'ILS' || currency === 'ILA') currencySymbol = '₪';
     else if (currency === 'GBP' || currency === 'GBp') currencySymbol = '£';
     else if (currency === 'JPY') currencySymbol = '¥';
-    else if (currency !== 'USD') currencySymbol = currency + " ";
-    
+    else if (currency !== 'USD') currencySymbol = currency + ' ';
+
+    // Get exchange rate if not USD
+    let exchangeRate = 1;
+    if (currency !== 'USD') {
+      try {
+        let fxSym = `${currency}USD=X`;
+        if (currency === 'GBp') fxSym = 'GBPUSD=X';
+        if (currency === 'ILA') fxSym = 'ILSUSD=X';
+        const fxQ = await _yf.quote(fxSym);
+        let divisor = (currency === 'GBp' || currency === 'ILA') ? 100 : 1;
+        exchangeRate = (fxQ.regularMarketPrice || 1) / divisor;
+      } catch (e) {
+        console.warn('FX rate failed for', currency);
+      }
+    }
+
     res.json({
-      symbol: meta.symbol,
-      price: meta.regularMarketPrice,
-      change: meta.regularMarketPrice - meta.chartPreviousClose,
-      changePercent: ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100,
-      currency: currency,
-      currencySymbol: currencySymbol,
-      exchangeRateToUSD: exchangeRate
+      symbol: q.symbol,
+      price: q.regularMarketPrice,
+      change: q.regularMarketChange,
+      changePercent: q.regularMarketChangePercent,
+      currency,
+      currencySymbol,
+      exchangeRateToUSD: exchangeRate,
     });
   } catch (error) {
-    console.error('Error fetching quote:', error);
+    console.error('Error fetching quote:', error.message);
     res.status(500).json({ error: 'Failed to fetch quote' });
   }
 });
@@ -72,26 +61,38 @@ app.get('/api/chart', async (req, res) => {
   try {
     const symbol = req.query.symbol;
     const period = req.query.period || '7d';
-    
-    const range = period === '1d' ? '1d' : period === '1mo' ? '1mo' : '5d';
-    const interval = period === '1d' ? '5m' : period === '1mo' ? '1d' : '1d';
 
-    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`);
-    const data = await response.json();
-    
-    if (!data.chart.result) throw new Error('No data');
-    const result = data.chart.result[0];
-    const timestamps = result.timestamp || [];
-    const closes = result.indicators.quote[0].close || [];
-    
-    const history = timestamps.map((time, idx) => ({
-      time: new Date(time * 1000).toISOString(),
-      value: closes[idx]
-    })).filter(pt => pt.value !== null && pt.value !== undefined);
+    // Map period string to yahoo-finance2 params
+    const now = Math.floor(Date.now() / 1000);
+    let period1, interval;
+    if (period === '1d') {
+      period1 = now - 1 * 24 * 60 * 60;
+      interval = '5m';
+    } else if (period === '1mo') {
+      period1 = now - 30 * 24 * 60 * 60;
+      interval = '1d';
+    } else if (period === '5y') {
+      period1 = now - 5 * 365 * 24 * 60 * 60;
+      interval = '1wk';
+    } else {
+      // default 7 days
+      period1 = now - 7 * 24 * 60 * 60;
+      interval = '1d';
+    }
+
+    const result = await _yf.chart(symbol, { period1, period2: now, interval });
+    const quotes = result.quotes || [];
+
+    const history = quotes
+      .map(q => ({
+        time: q.date instanceof Date ? q.date.toISOString() : new Date(q.date).toISOString(),
+        value: q.close ?? null,
+      }))
+      .filter(pt => pt.value !== null && pt.value !== undefined);
 
     res.json(history);
   } catch (error) {
-    console.error('Error fetching chart:', error);
+    console.error('Error fetching chart:', error.message);
     res.status(500).json({ error: 'Failed to fetch chart' });
   }
 });
@@ -100,19 +101,17 @@ app.get('/api/chart', async (req, res) => {
 app.get('/api/search', async (req, res) => {
   try {
     const query = req.query.query;
-    const response = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${query}`);
-    const data = await response.json();
-    
-    const equities = data.quotes
+    const results = await _yf.search(query, { newsCount: 0 });
+    const equities = (results.quotes || [])
       .filter(q => q.quoteType === 'EQUITY' || q.quoteType === 'ETF')
       .map(q => ({
         symbol: q.symbol,
-        name: q.shortname || q.longname || q.symbol
+        name: q.shortname || q.longname || q.symbol,
       }))
       .slice(0, 10);
-          res.json(equities);
+    res.json(equities);
   } catch (error) {
-    console.error('Error searching:', error);
+    console.error('Error searching:', error.message);
     res.status(500).json({ error: 'Failed to search' });
   }
 });
@@ -123,24 +122,21 @@ app.get('/api/market-momentum', async (req, res) => {
     const symbols = ['NVDA', 'PLTR', 'CRWD', 'META', 'UBER', 'MSTR'];
     const results = await Promise.all(symbols.map(async (symbol) => {
       try {
-        const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`);
-        const data = await response.json();
-        if (!data.chart.result) return null;
-        const meta = data.chart.result[0].meta;
+        const q = await _yf.quote(symbol);
         return {
-          symbol: meta.symbol,
-          price: meta.regularMarketPrice,
-          change: meta.regularMarketPrice - meta.chartPreviousClose,
-          changePercent: ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100,
-          name: meta.symbol
+          symbol: q.symbol,
+          price: q.regularMarketPrice,
+          change: q.regularMarketChange,
+          changePercent: q.regularMarketChangePercent,
+          name: q.shortName || q.symbol,
         };
       } catch (e) { return null; }
     }));
-    
-    const validResults = results.filter(Boolean).sort((a,b) => b.changePercent - a.changePercent);
+
+    const validResults = results.filter(Boolean).sort((a, b) => b.changePercent - a.changePercent);
     res.json(validResults);
   } catch (error) {
-    console.error('Error fetching momentum:', error);
+    console.error('Error fetching momentum:', error.message);
     res.status(500).json({ error: 'Failed to fetch momentum' });
   }
 });
@@ -211,33 +207,64 @@ app.get('/api/institutional', async (req, res) => {
   }
 });
 
-// Technical Analysis — 6 months OHLCV data
+// Technical Analysis — 12 months OHLCV data via yahoo-finance2
+
 app.get('/api/technical', async (req, res) => {
   try {
     const { symbol } = req.query;
     if (!symbol) return res.status(400).json({ error: 'Symbol required' });
 
-    const response = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`,
-      { headers: { 'User-Agent': 'Mozilla/5.0' } }
-    );
-    const data = await response.json();
+    const now = Math.floor(Date.now() / 1000);
+    const oneYearAgo = now - 365 * 24 * 60 * 60;
 
-    if (!data.chart?.result?.[0]) throw new Error('No data');
-    const result = data.chart.result[0];
-    const timestamps = result.timestamp || [];
-    const q = result.indicators.quote[0];
+    let history;
 
-    const history = timestamps
-      .map((t, i) => ({
-        date:   new Date(t * 1000).toISOString().split('T')[0],
-        open:   q.open?.[i]   ?? null,
-        high:   q.high?.[i]   ?? null,
-        low:    q.low?.[i]    ?? null,
-        close:  q.close?.[i]  ?? null,
-        volume: q.volume?.[i] ?? null,
-      }))
-      .filter(d => d.close !== null);
+    try {
+      const result = await _yf.chart(symbol, {
+        period1: oneYearAgo,
+        period2: now,
+        interval: '1d',
+      });
+
+      history = (result.quotes || [])
+        .map(q => ({
+          date:   q.date instanceof Date ? q.date.toISOString().split('T')[0] : String(q.date).split('T')[0],
+          open:   q.open   ?? null,
+          high:   q.high   ?? null,
+          low:    q.low    ?? null,
+          close:  q.close  ?? null,
+          volume: q.volume ?? null,
+        }))
+        .filter(d => d.close !== null && d.close > 0);
+
+    } catch (yf2Err) {
+      console.warn('yahoo-finance2 failed, falling back:', yf2Err.message);
+
+      const response = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' } }
+      );
+      const data = await response.json();
+      if (!data.chart?.result?.[0]) throw new Error('No data');
+      const result = data.chart.result[0];
+      const timestamps = result.timestamp || [];
+      const q = result.indicators.quote[0];
+
+      history = timestamps
+        .map((t, i) => ({
+          date:   new Date(t * 1000).toISOString().split('T')[0],
+          open:   q.open?.[i]   ?? null,
+          high:   q.high?.[i]   ?? null,
+          low:    q.low?.[i]    ?? null,
+          close:  q.close?.[i]  ?? null,
+          volume: q.volume?.[i] ?? null,
+        }))
+        .filter(d => d.close !== null && d.close > 0);
+    }
+
+    if (!history || history.length < 30) {
+      return res.status(500).json({ error: `Insufficient data for ${symbol}` });
+    }
 
     res.json(history);
   } catch (err) {
@@ -251,21 +278,16 @@ app.get('/api/exchange-rate', async (req, res) => {
   try {
     const currency = req.query.currency.toUpperCase();
     if (currency === 'USD') return res.json({ rate: 1 });
-    
-    let fxSymbol = `${currency}USD=X`;
-    if (currency === 'ILS' || currency === 'ILA') fxSymbol = 'ILSUSD=X';
-    if (currency === 'GBP' || currency === 'GBp') fxSymbol = 'GBPUSD=X';
-    
-    const fxRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${fxSymbol}?interval=1d&range=1d`);
-    const fxData = await fxRes.json();
-    const fxMeta = fxData.chart.result[0].meta;
-    
-    let divisor = 1;
-    if (currency === 'ILA' || currency === 'GBp') divisor = 100;
 
-    res.json({ rate: fxMeta.regularMarketPrice / divisor });
+    let fxSym = `${currency}USD=X`;
+    if (currency === 'ILS' || currency === 'ILA') fxSym = 'ILSUSD=X';
+    if (currency === 'GBP' || currency === 'GBp') fxSym = 'GBPUSD=X';
+
+    const q = await _yf.quote(fxSym);
+    let divisor = (currency === 'ILA' || currency === 'GBp') ? 100 : 1;
+    res.json({ rate: (q.regularMarketPrice || 1) / divisor });
   } catch (error) {
-    console.error('Exchange rate error:', error);
+    console.error('Exchange rate error:', error.message);
     res.json({ rate: 1 }); // safe fallback
   }
 });

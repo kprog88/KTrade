@@ -87,15 +87,27 @@ export default async function handler(req, res) {
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
+      model: 'claude-haiku-4-5',
+      max_tokens: 2048,
       messages: [{ role: 'user', content: prompt }],
     });
 
     const raw = message.content[0].text.trim();
 
-    // Strip markdown code fences if Claude wraps in them
-    const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    // Robustly extract the JSON object from the response
+    // Handles markdown fences, leading/trailing text, and partial responses
+    let jsonStr = raw
+      .replace(/^```(?:json)?\s*/im, '')  // strip opening fence
+      .replace(/\s*```\s*$/m, '')          // strip closing fence
+      .trim();
+
+    // If there's still non-JSON preamble, find the first '{'
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace  = jsonStr.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
+    }
+
     const parsed = JSON.parse(jsonStr);
 
     res.setHeader('Cache-Control', 'no-store');

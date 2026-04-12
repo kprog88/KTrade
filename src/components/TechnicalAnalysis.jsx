@@ -323,17 +323,37 @@ function buildInstInterpretation(inst) {
 }
 
 // ─── CHART WIDTH HOOK ───────────────────────────────────────────────────────
-// ResizeObserver-based hook: always returns the real pixel width of a container.
-// This replaces ResponsiveContainer which cannot measure inside CSS-grid accordions.
+// Robust width hook: initializes immediately with window-based safe width,
+// then refines via ResizeObserver. This guarantees charts always render,
+// even inside CSS-grid accordion panels on mobile where getBoundingClientRect
+// returns 0 during the collapse/expand animation.
 
-function useChartWidth() {
+function useChartWidth(isActive) {
   const ref = useRef(null);
-  const [width, setWidth] = useState(0);
+
+  // Safe immediate initial width: window minus typical padding (48px sides on mobile)
+  const safeInitial = () => {
+    if (typeof window === 'undefined') return 320;
+    return Math.max(200, window.innerWidth - 48);
+  };
+
+  const [width, setWidth] = useState(safeInitial);
 
   const measure = useCallback(() => {
-    if (ref.current) {
-      const w = ref.current.getBoundingClientRect().width;
-      if (w > 0) setWidth(Math.floor(w));
+    if (!ref.current) return;
+    const w = ref.current.getBoundingClientRect().width;
+    if (w > 10) {
+      setWidth(Math.floor(w));
+    } else {
+      // Element reports 0 (inside collapsed accordion) — use parent chain
+      let el = ref.current.parentElement;
+      while (el) {
+        const pw = el.getBoundingClientRect().width;
+        if (pw > 10) { setWidth(Math.floor(pw - 24)); return; }
+        el = el.parentElement;
+      }
+      // Last resort: window width minus chrome
+      setWidth(Math.max(200, window.innerWidth - 48));
     }
   }, []);
 
@@ -343,6 +363,23 @@ function useChartWidth() {
     const obs = new ResizeObserver(measure);
     obs.observe(ref.current);
     return () => obs.disconnect();
+  }, [measure]);
+
+  // Re-measure at key moments after accordion opens
+  useEffect(() => {
+    if (!isActive) return;
+    const timers = [
+      setTimeout(measure, 30),
+      setTimeout(measure, 200),
+      setTimeout(measure, 450),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [isActive, measure]);
+
+  // Also re-measure on window resize
+  useEffect(() => {
+    window.addEventListener('resize', measure, { passive: true });
+    return () => window.removeEventListener('resize', measure);
   }, [measure]);
 
   return [ref, width];
@@ -381,7 +418,7 @@ function StockCard({ holding, isActive, onSignalReady }) {
   const [instLoading,  setInstLoading]  = useState(true);
   const [instError,    setInstError]    = useState(null);
   const hasFetched = useRef(false);
-  const [chartRef, chartWidth] = useChartWidth();
+  const [chartRef, chartWidth] = useChartWidth(isActive);
 
 
 
@@ -458,13 +495,17 @@ function StockCard({ holding, isActive, onSignalReady }) {
 
   const toggleMA = key => setVisibleMAs(p => ({ ...p, [key]: !p[key] }));
 
-  const CHART_H = 265;
+  const CHART_H = 240;
 
   function renderChart() {
-    // chartWidth comes from ResizeObserver on the chart container div.
-    // We only render once we have a real measured width > 0.
-    if (!chartWidth) return null;
-    const common = { data: chartData, width: chartWidth, height: CHART_H, margin: { top: 5, right: 8, left: 0, bottom: 5 } };
+    // chartWidth is always ≥ 200 (guaranteed by the hook's window-based fallback).
+    const w = Math.min(chartWidth, 1200); // cap for very wide desktop screens
+    const common = {
+      data: chartData,
+      width: w,
+      height: CHART_H,
+      margin: { top: 4, right: 4, left: 0, bottom: 4 },
+    };
 
     if (activeTab === 'Price & MAs') {
       return (
@@ -634,7 +675,7 @@ function StockCard({ holding, isActive, onSignalReady }) {
 
           {/* ── Chart ── */}
           {/* chartRef gives ResizeObserver the real pixel width — fixes mobile rendering */}
-          <div ref={chartRef} className="ta-chart-area" style={{ width: '100%', height: 265, overflow: 'hidden' }}>
+          <div ref={chartRef} className="ta-chart-area" style={{ width: '100%', height: CHART_H + 30 }}>
             {renderChart()}
           </div>
 
