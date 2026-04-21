@@ -102,6 +102,17 @@ export const fetchLearn = async (query) => {
   }
 };
 
+export const fetchWorldIndices = async () => {
+  try {
+    const res = await fetch('/api/world-indices');
+    if (!res.ok) throw new Error('Failed');
+    return await res.json();
+  } catch (error) {
+    console.error('Error fetching world indices:', error);
+    return [];
+  }
+};
+
 export const fetchExchangeRate = async (currency) => {
   try {
     const res = await fetch(`/api/exchange-rate?currency=${currency}`);

@@ -1,89 +1,163 @@
-/* Dashboard — desktop base layout.
-   Mobile overrides are in App.css via html.is-mobile selector (JS-driven). */
-
+/* ── Dashboard grid ──────────────────────────────────────────────────────── */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 1.5rem;
+  gap: 1.25rem;
   width: 100%;
   max-width: 100%;
 }
 
-/* ── Metrics bar ── */
+/* ── Section header (icon + uppercase label) ─────────────────────────────── */
+.db-section-hdr {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* ── Portfolio metrics bar ───────────────────────────────────────────────── */
 .portfolio-overview {
-  grid-column: span 12;
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.75rem 1.25rem;
+  gap: 0.75rem 1.5rem;
   align-items: start;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 7, 10, 0) 100%);
   border-left: 3px solid var(--accent-color);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, transparent 100%);
 }
 
 .metric {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.2rem;
 }
 
 .metric-label {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   font-weight: 500;
 }
 
 .metric-value {
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.metric-sub {
+  font-size: 0.7em;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.pnl-pos { color: var(--success-color) !important; }
+.pnl-neg { color: var(--danger-color)  !important; }
+
+/* legacy aliases used in holdingRows */
+.trend-positive { color: var(--success-color); display: flex; align-items: center; gap: 0.25rem; }
+.trend-negative { color: var(--danger-color);  display: flex; align-items: center; gap: 0.25rem; }
+
+/* ── Global Markets indices strip ────────────────────────────────────────── */
+.db-indices-strip {
+  display: flex;
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+}
+.db-indices-strip::-webkit-scrollbar { display: none; }
+
+.db-index-card {
+  flex: 0 0 140px;
+  min-width: 140px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: border-color 0.2s;
+}
+
+.db-index-card:hover {
+  border-color: var(--accent-color);
+}
+
+.db-index-skeleton {
+  height: 96px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.db-index-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.1rem;
+}
+
+.db-index-region {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+}
+
+.db-index-chg {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.db-index-chg.pos { color: var(--success-color); }
+.db-index-chg.neg { color: var(--danger-color); }
+
+.db-index-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-index-price {
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.01em;
+  margin-bottom: 0.25rem;
 }
 
-.trend-positive {
-  color: var(--success-color);
-  font-size: 1rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.trend-negative {
-  color: var(--danger-color);
-  font-size: 1rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-/* ── Allocation donut panel ── */
-.alloc-panel {
-  grid-column: span 8;
-  min-height: 380px;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ── Holdings breakdown panel ── */
+/* ── Holdings panel ──────────────────────────────────────────────────────── */
 .db-holdings-panel {
-  grid-column: span 4;
-  min-height: 380px;
+  grid-column: span 7;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .db-holdings-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  margin-bottom: 0.1rem;
 }
 
 .db-holdings-count {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--text-secondary);
 }
 
@@ -91,21 +165,21 @@
   color: var(--text-secondary);
   font-size: 0.88rem;
   text-align: center;
-  padding: 2rem 0;
+  padding: 2.5rem 0;
   flex: 1;
 }
 
 .db-holdings-list {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.55rem;
   flex: 1;
   overflow-y: auto;
-  max-height: 300px;
+  max-height: 260px;
   padding-right: 2px;
 }
 
-.db-holdings-list::-webkit-scrollbar { width: 4px; }
+.db-holdings-list::-webkit-scrollbar { width: 3px; }
 .db-holdings-list::-webkit-scrollbar-track { background: transparent; }
 .db-holdings-list::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 4px; }
 
@@ -116,8 +190,8 @@
 }
 
 .db-holding-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -131,23 +205,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.22rem;
 }
 
 .db-holding-symbol {
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   color: var(--text-primary);
 }
 
 .db-holding-pnl {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
-  font-size: 0.78rem;
+  gap: 0.18rem;
+  font-size: 0.76rem;
   font-weight: 600;
 }
-
 .db-holding-pnl.pos { color: var(--success-color); }
 .db-holding-pnl.neg { color: var(--danger-color); }
 
@@ -159,8 +232,8 @@
 
 .db-holding-bar {
   flex: 1;
-  height: 4px;
-  background: rgba(255,255,255,0.07);
+  height: 3px;
+  background: rgba(255, 255, 255, 0.07);
   border-radius: 99px;
   overflow: hidden;
 }
@@ -169,19 +242,19 @@
   height: 100%;
   border-radius: 99px;
   transition: width 0.6s ease;
-  opacity: 0.85;
+  opacity: 0.75;
 }
 
 .db-holding-weight {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
-  width: 34px;
+  width: 32px;
   text-align: right;
   flex-shrink: 0;
 }
 
 .db-holding-value {
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -195,8 +268,8 @@
   gap: 0.4rem;
   width: 100%;
   padding: 0.55rem;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: 8px;
   color: var(--accent-color);
   font-size: 0.82rem;
@@ -206,95 +279,167 @@
   font-family: inherit;
   margin-top: auto;
 }
+.db-insights-btn:hover { background: rgba(99, 102, 241, 0.18); }
 
-.db-insights-btn:hover {
-  background: rgba(16, 185, 129, 0.2);
+/* ── News panel ──────────────────────────────────────────────────────────── */
+.db-news-panel {
+  grid-column: span 5;
+  display: flex;
+  flex-direction: column;
 }
 
-
-/* ── Momentum cards ── */
-.momentum-card {
-  position: relative;
-  overflow: visible;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  flex: 0 0 220px;
-  min-width: 220px;
+.db-news-skeleton-wrap { display: flex; flex-direction: column; gap: 0.75rem; }
+.db-news-skeleton {
+  height: 64px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
-.momentum-card:hover {
-  transform: scale(1.05);
-  z-index: 10;
+.db-news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.momentum-tooltip {
-  position: absolute;
-  top: 105%;
-  left: 0;
-  width: 220px;
-  background: var(--bg-color);
-  border: 1px solid var(--accent-color);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-  padding: 1rem;
-  border-radius: 12px;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  z-index: 1000;
-  pointer-events: none;
-  font-size: 0.85rem;
-  line-height: 1.5;
+.db-news-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, background 0.2s;
+}
+.db-news-item:hover {
+  border-color: var(--accent-color);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.db-news-index {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  opacity: 0.6;
+  flex-shrink: 0;
+  padding-top: 0.1rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+.db-news-body { flex: 1; min-width: 0; }
+
+.db-news-title {
+  font-size: 0.83rem;
+  font-weight: 500;
   color: var(--text-primary);
-  transform: translateY(10px) scale(0.9);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.momentum-tooltip::after {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 24px;
-  margin-left: -8px;
-  border-width: 8px;
-  border-style: solid;
-  border-color: transparent transparent var(--accent-color) transparent;
+.db-news-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
 }
 
-.momentum-card:hover .momentum-tooltip {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0) scale(1);
+.db-news-src {
+  font-size: 0.68rem;
+  color: var(--accent-color);
+  font-weight: 500;
+  opacity: 0.8;
 }
 
-.accent-bg { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
-.success-bg { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.db-news-time {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
 
+.db-news-ext {
+  color: var(--text-secondary);
+  opacity: 0;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  transition: opacity 0.2s;
+}
+.db-news-item:hover .db-news-ext { opacity: 0.6; }
+
+/* ── Today's Movers (within news panel) ──────────────────────────────────── */
+.db-movers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.db-mover-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.db-mover-row:hover { background: rgba(255, 255, 255, 0.04); }
+
+.db-mover-logo {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.db-mover-sym {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.db-mover-price {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.db-mover-chg {
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+}
+.db-mover-chg.pos { color: var(--success-color); }
+.db-mover-chg.neg { color: var(--danger-color); }
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .dashboard-grid {
     grid-template-columns: 1fr !important;
     gap: 0.85rem !important;
   }
-
   .dashboard-grid > * {
     grid-column: 1 / -1 !important;
   }
-
   .portfolio-overview {
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
-
   .metric-value {
-    font-size: 1.1rem !important;
+    font-size: 1.05rem !important;
   }
-
   .db-holdings-list {
     max-height: none !important;
     overflow-y: visible !important;
   }
-
-  .momentum-tooltip { display: none; }
-
-  .momentum-card {
-    flex: 0 0 155px !important;
-    min-width: 155px;
-    padding: 0.75rem !important;
+  .db-index-card {
+    flex: 0 0 120px;
+    min-width: 120px;
   }
 }

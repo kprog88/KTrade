@@ -1,32 +1,47 @@
+import YahooFinance from 'yahoo-finance2';
+
+const yf = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
+
 export default async function handler(req, res) {
   try {
     const symbol = req.query.symbol;
     const period = req.query.period || '7d';
-    
-    const rangeMap    = { '1d': '1d', '1mo': '1mo', '5y': '5y' };
-    const intervalMap = { '1d': '5m', '1mo': '1d', '5y': '1wk' };
-    const range    = rangeMap[period]    || '5d';
-    const interval = intervalMap[period] || '1d';
 
-    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`);
-    const data = await response.json();
-    
-    if (!data.chart.result) throw new Error('No data');
-    const result = data.chart.result[0];
-    const timestamps = result.timestamp || [];
-    const closes = result.indicators.quote[0].close || [];
-    
-    const history = timestamps.map((time, idx) => {
-      const d = new Date(time * 1000);
-      return {
-        time: d.toISOString(),
-        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }),
-        value: closes[idx],
-      };
-    }).filter(pt => pt.value !== null && pt.value !== undefined);
+    const now = Math.floor(Date.now() / 1000);
+    let period1, interval;
+
+    if (period === '1d') {
+      period1 = now - 1 * 24 * 60 * 60;
+      interval = '5m';
+    } else if (period === '1mo') {
+      period1 = now - 30 * 24 * 60 * 60;
+      interval = '1d';
+    } else if (period === '5y') {
+      period1 = now - 5 * 365 * 24 * 60 * 60;
+      interval = '1wk';
+    } else {
+      // default 7 days
+      period1 = now - 7 * 24 * 60 * 60;
+      interval = '1d';
+    }
+
+    const result = await yf.chart(symbol, { period1, period2: now, interval });
+    const quotes = result.quotes || [];
+
+    const history = quotes
+      .map(q => {
+        const d = q.date instanceof Date ? q.date : new Date(q.date);
+        return {
+          time:  d.toISOString(),
+          date:  d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }),
+          value: q.close ?? null,
+        };
+      })
+      .filter(pt => pt.value !== null && pt.value !== undefined);
 
     res.json(history);
   } catch (error) {
+    console.error('Chart error:', error.message);
     res.status(500).json({ error: 'Failed to fetch chart' });
   }
 }

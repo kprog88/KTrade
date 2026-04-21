@@ -1,20 +1,58 @@
 import { useState, useEffect, useMemo } from 'react'
-import { PieChart, Pie, Cell, Sector, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Sector } from 'recharts'
 import { usePortfolio } from '../context/PortfolioContext'
-import { fetchMomentum } from '../data/api'
-import { BrainCircuit, TrendingUp, TrendingDown } from 'lucide-react'
+import { fetchMomentum, fetchWorldIndices, fetchMarketNews } from '../data/api'
+import { BrainCircuit, TrendingUp, TrendingDown, Globe, Newspaper, ExternalLink } from 'lucide-react'
 import './Dashboard.css'
 
-const COLORS = ['#10b981', '#14b8a6', '#0fa5e9', '#34d399', '#059669', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899'];
+const COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#3b82f6', '#f59e0b', '#10b981', '#ec4899', '#f43f5e', '#14b8a6'];
 
+// ── Mini SVG sparkline ──────────────────────────────────────────────────────
+function Sparkline({ data, positive }) {
+  if (!data || data.length < 2) return <div style={{ width: 72, height: 28 }} />;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const W = 72, H = 28;
+  const pts = data
+    .map((v, i) => `${(i / (data.length - 1)) * W},${H - 2 - ((v - min) / range) * (H - 4)}`)
+    .join(' ');
+  const color = positive ? 'var(--success-color)' : 'var(--danger-color)';
+  return (
+    <svg width={W} height={H} style={{ display: 'block', flexShrink: 0 }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5}
+        strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
+    </svg>
+  );
+}
+
+// ── Relative time ────────────────────────────────────────────────────────────
+function timeAgo(ts) {
+  if (!ts) return '';
+  const diff = Math.floor(Date.now() / 1000) - ts;
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 export default function Dashboard({ onNavigate, mobile }) {
   const { holdings } = usePortfolio();
-  const [momentum, setMomentum] = useState([]);
-  const [tooltip, setTooltip]   = useState(null);
+  const [momentum, setMomentum]           = useState([]);
+  const [worldIndices, setWorldIndices]   = useState([]);
+  const [news, setNews]                   = useState([]);
+  const [activePieIndex, setActivePieIndex] = useState(null);
 
+  useEffect(() => {
+    fetchMomentum().then(d    => { if (d?.length) setMomentum(d); });
+    fetchWorldIndices().then(d => { if (d?.length) setWorldIndices(d); });
+    fetchMarketNews().then(d  => { if (d?.length) setNews(d.slice(0, 3)); });
+  }, []);
+
+  // Portfolio metrics
   const metrics = useMemo(() => {
     let totalValue = 0, costBasis = 0, topGainer = null, topLoser = null;
-
     holdings.forEach(asset => {
       const price = asset.currentPrice || asset.avgPrice;
       const rate  = asset.exchangeRateToUSD || 1;
@@ -26,7 +64,6 @@ export default function Dashboard({ onNavigate, mobile }) {
       if (!topGainer || changePct > topGainer.pct) topGainer = { symbol: asset.symbol, pct: changePct };
       if (!topLoser  || changePct < topLoser.pct)  topLoser  = { symbol: asset.symbol, pct: changePct };
     });
-
     const profit        = totalValue - costBasis;
     const profitPercent = costBasis > 0 ? (profit / costBasis) * 100 : 0;
     const pieData       = [...holdings]
@@ -55,104 +92,120 @@ export default function Dashboard({ onNavigate, mobile }) {
       .map((h, i) => ({ ...h, colorIdx: i }));
   }, [holdings, metrics.totalValue]);
 
-  useEffect(() => {
-    fetchMomentum().then(d => { if (d?.length) setMomentum(d); });
-  }, []);
-
   const fmt = n => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const [activePieIndex, setActivePieIndex] = useState(null);
+  const fmtIdx = n => n >= 10000
+    ? n.toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
   const renderActiveSlice = (props) => {
     const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent } = props;
     return (
       <g>
-        <Sector cx={cx} cy={cy} innerRadius={innerRadius - 4} outerRadius={outerRadius + 14}
+        <Sector cx={cx} cy={cy} innerRadius={innerRadius - 4} outerRadius={outerRadius + 12}
           startAngle={startAngle} endAngle={endAngle} fill={fill} opacity={1} />
-        {/* Stock name in centre */}
-        <text x={cx} y={cy - 10} textAnchor="middle" fill="#fff" fontSize={15} fontWeight={700}>{payload.name}</text>
+        <text x={cx} y={cy - 10} textAnchor="middle" fill="#fff" fontSize={14} fontWeight={700}>{payload.name}</text>
         <text x={cx} y={cy + 10} textAnchor="middle" fill={fill} fontSize={12} fontWeight={600}>
           {(percent * 100).toFixed(1)}%
         </text>
-        <text x={cx} y={cy + 28} textAnchor="middle" fill="var(--text-secondary)" fontSize={11}>
+        <text x={cx} y={cy + 27} textAnchor="middle" fill="var(--text-secondary)" fontSize={11}>
           ${fmt(payload.value)}
         </text>
       </g>
     );
   };
 
-  // All layout driven by inline styles from JS-detected `mobile`.
-  // CSS media queries use window.innerWidth which Samsung fakes.
-  // screen.width (used in App.jsx) cannot be faked — so we trust this prop.
-  // min-width:0 on every panel prevents grid items from sizing to content
-  // (default min-width:auto lets children like flex rows expand beyond the column)
-  const fullCol  = { gridColumn: '1 / -1', minWidth: 0 };
-  const gridStyle = mobile
-    ? { gridTemplateColumns: '1fr', gap: '0.85rem' }
-    : {};
-  const metricStyle = mobile
-    ? { gridTemplateColumns: 'repeat(2, 1fr)' }
-    : {};
-  const metricValueStyle = mobile
-    ? { fontSize: '1.05rem', fontWeight: 600 }
-    : {};
+  const fullCol    = { gridColumn: '1 / -1', minWidth: 0 };
+  const gridStyle  = mobile ? { gridTemplateColumns: '1fr', gap: '0.85rem' } : {};
+  const metricValS = mobile ? { fontSize: '1.05rem', fontWeight: 600 } : {};
 
   return (
     <div className="dashboard-grid" style={gridStyle}>
 
-      {/* ── Metrics bar ── */}
-      <div className="glass-panel portfolio-overview" style={{ ...fullCol, ...metricStyle }}>
+      {/* ── 1. Portfolio metrics ──────────────────────────────── */}
+      <div className="glass-panel portfolio-overview" style={{ ...fullCol }}>
         <div className="metric">
           <span className="metric-label">Total Balance</span>
-          <span className="metric-value" style={metricValueStyle}>${fmt(metrics.totalValue)}</span>
+          <span className="metric-value" style={metricValS}>${fmt(metrics.totalValue)}</span>
         </div>
         <div className="metric">
           <span className="metric-label">Total P/L</span>
-          <span className={`metric-value ${metrics.profit >= 0 ? 'trend-positive' : 'trend-negative'}`} style={metricValueStyle}>
+          <span className={`metric-value ${metrics.profit >= 0 ? 'pnl-pos' : 'pnl-neg'}`} style={metricValS}>
             {metrics.profit >= 0 ? '+' : '-'}${fmt(Math.abs(metrics.profit))}
-            <span style={{ fontSize: '0.8em', opacity: 0.85 }}> ({metrics.profitPercent.toFixed(1)}%)</span>
+            <span className="metric-sub"> ({metrics.profitPercent >= 0 ? '+' : ''}{metrics.profitPercent.toFixed(1)}%)</span>
           </span>
         </div>
         <div className="metric">
           <span className="metric-label">Positions</span>
-          <span className="metric-value" style={metricValueStyle}>{metrics.assetCount}</span>
+          <span className="metric-value" style={metricValS}>{metrics.assetCount}</span>
         </div>
         <div className="metric">
-          <span className="metric-label">Best</span>
-          {metrics.topGainer ? (
-            <span className="metric-value trend-positive" style={metricValueStyle}>
-              {metrics.topGainer.symbol} +{Math.abs(metrics.topGainer.pct).toFixed(1)}%
-            </span>
-          ) : <span className="metric-value" style={{ ...metricValueStyle, color: 'var(--text-secondary)' }}>--</span>}
+          <span className="metric-label">Best Performer</span>
+          {metrics.topGainer
+            ? <span className="metric-value pnl-pos" style={metricValS}>{metrics.topGainer.symbol} +{Math.abs(metrics.topGainer.pct).toFixed(1)}%</span>
+            : <span className="metric-value" style={{ ...metricValS, color: 'var(--text-secondary)' }}>--</span>}
         </div>
         {!mobile && (
           <div className="metric">
-            <span className="metric-label">Worst</span>
-            {metrics.topLoser ? (
-              <span className={`metric-value ${metrics.topLoser.pct >= 0 ? 'trend-positive' : 'trend-negative'}`}>
-                {metrics.topLoser.symbol} {metrics.topLoser.pct >= 0 ? '+' : ''}{metrics.topLoser.pct.toFixed(1)}%
-              </span>
-            ) : <span className="metric-value" style={{ color: 'var(--text-secondary)' }}>--</span>}
+            <span className="metric-label">Worst Performer</span>
+            {metrics.topLoser
+              ? <span className={`metric-value ${metrics.topLoser.pct >= 0 ? 'pnl-pos' : 'pnl-neg'}`}>
+                  {metrics.topLoser.symbol} {metrics.topLoser.pct >= 0 ? '+' : ''}{metrics.topLoser.pct.toFixed(1)}%
+                </span>
+              : <span className="metric-value" style={{ color: 'var(--text-secondary)' }}>--</span>}
           </div>
         )}
       </div>
 
-      {/* ── Allocation donut — hidden on mobile ── */}
-      {!mobile && <div className="glass-panel alloc-panel">
-        <h2 style={{ margin: '0 0 0.75rem', fontSize: '1rem', fontWeight: 600 }}>Allocation</h2>
-        {metrics.pieData.length === 0 ? (
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', textAlign: 'center', padding: '2rem 0' }}>
-            Add positions to see your allocation.
-          </div>
+      {/* ── 2. Global Markets ─────────────────────────────────── */}
+      <div className="glass-panel" style={{ ...fullCol }}>
+        <div className="db-section-hdr">
+          <Globe size={14} strokeWidth={2} />
+          <h2 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
+            Global Markets
+          </h2>
+        </div>
+        <div className="db-indices-strip">
+          {worldIndices.length === 0
+            ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="db-index-card db-index-skeleton" />)
+            : worldIndices.map(idx => {
+                const pos = idx.changePercent >= 0;
+                return (
+                  <div key={idx.symbol} className="db-index-card">
+                    <div className="db-index-top">
+                      <span className="db-index-region">{idx.region}</span>
+                      <span className={`db-index-chg ${pos ? 'pos' : 'neg'}`}>
+                        {pos ? '+' : ''}{idx.changePercent?.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="db-index-name">{idx.name}</div>
+                    <div className="db-index-price">{fmtIdx(idx.price ?? 0)}</div>
+                    <Sparkline data={idx.sparkline} positive={pos} />
+                  </div>
+                );
+              })
+          }
+        </div>
+      </div>
+
+      {/* ── 3a. Holdings + Donut ──────────────────────────────── */}
+      <div className="glass-panel db-holdings-panel" style={mobile ? fullCol : { minWidth: 0 }}>
+        <div className="db-holdings-header">
+          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Holdings</h2>
+          <span className="db-holdings-count">{holdingRows.length} positions</span>
+        </div>
+
+        {holdingRows.length === 0 ? (
+          <div className="db-holdings-empty">Add positions in Portfolio to see your holdings here.</div>
         ) : (
           <>
-            <div style={{ width: '100%', height: 280 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+            {/* Allocation donut — desktop only */}
+            {!mobile && metrics.pieData.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <PieChart width={200} height={160}>
                   <Pie
                     data={metrics.pieData}
-                    cx="50%" cy="50%"
-                    innerRadius="42%"
-                    outerRadius="65%"
+                    cx={100} cy={80}
+                    innerRadius={48} outerRadius={70}
                     dataKey="value"
                     stroke="none"
                     paddingAngle={2}
@@ -163,60 +216,40 @@ export default function Dashboard({ onNavigate, mobile }) {
                   >
                     {metrics.pieData.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]}
-                        opacity={activePieIndex === null || activePieIndex === i ? 1 : 0.45} />
+                        opacity={activePieIndex === null || activePieIndex === i ? 1 : 0.4} />
                     ))}
                   </Pie>
                 </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem 0.85rem', marginTop: '0.5rem' }}>
-              {metrics.pieData.map((d, i) => (
-                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: COLORS[i % COLORS.length], flexShrink: 0, display: 'inline-block' }} />
-                  {d.name}
-                </div>
-              ))}
+              </div>
+            )}
+
+            <div className="db-holdings-list">
+              {holdingRows.map(h => {
+                const color = COLORS[h.colorIdx % COLORS.length];
+                return (
+                  <div key={h.symbol} className="db-holding-row">
+                    <div className="db-holding-dot" style={{ background: color }} />
+                    <div className="db-holding-info">
+                      <div className="db-holding-top">
+                        <span className="db-holding-symbol">{h.symbol}</span>
+                        <span className={`db-holding-pnl ${h.pnlPct >= 0 ? 'pos' : 'neg'}`}>
+                          {h.pnlPct >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                          {h.pnlPct >= 0 ? '+' : ''}{h.pnlPct.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="db-holding-bar-wrap">
+                        <div className="db-holding-bar">
+                          <div className="db-holding-bar-fill" style={{ width: `${Math.min(h.weight, 100)}%`, background: color }} />
+                        </div>
+                        <span className="db-holding-weight">{h.weight.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                    <div className="db-holding-value">${fmt(h.value)}</div>
+                  </div>
+                );
+              })}
             </div>
           </>
-        )}
-      </div>}
-
-      {/* ── Holdings breakdown ── */}
-      <div className="glass-panel db-holdings-panel" style={mobile ? fullCol : { minWidth: 0 }}>
-        <div className="db-holdings-header">
-          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Holdings</h2>
-          <span className="db-holdings-count">{holdingRows.length} positions</span>
-        </div>
-
-        {holdingRows.length === 0 ? (
-          <div className="db-holdings-empty">Add positions in Portfolio to see your holdings here.</div>
-        ) : (
-          <div className="db-holdings-list" style={mobile ? { maxHeight: 'none', overflowY: 'visible' } : {}}>
-            {holdingRows.map(h => {
-              const color = COLORS[h.colorIdx % COLORS.length];
-              return (
-                <div key={h.symbol} className="db-holding-row">
-                  <div className="db-holding-dot" style={{ background: color }} />
-                  <div className="db-holding-info">
-                    <div className="db-holding-top">
-                      <span className="db-holding-symbol">{h.symbol}</span>
-                      <span className={`db-holding-pnl ${h.pnlPct >= 0 ? 'pos' : 'neg'}`}>
-                        {h.pnlPct >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                        {h.pnlPct >= 0 ? '+' : ''}{h.pnlPct.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="db-holding-bar-wrap">
-                      <div className="db-holding-bar">
-                        <div className="db-holding-bar-fill" style={{ width: `${Math.min(h.weight, 100)}%`, background: color }} />
-                      </div>
-                      <span className="db-holding-weight">{h.weight.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                  <div className="db-holding-value">${fmt(h.value)}</div>
-                </div>
-              );
-            })}
-          </div>
         )}
 
         {onNavigate && (
@@ -226,61 +259,69 @@ export default function Dashboard({ onNavigate, mobile }) {
         )}
       </div>
 
-      {/* ── Market Opportunities ── */}
-      <div className="glass-panel" style={{ ...fullCol, overflow: mobile ? 'hidden' : 'visible' }}>
-        <h2 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Market Opportunities</h2>
-        <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-          {momentum.map((stock, i) => {
-            const isPos = stock.change >= 0;
-            const rationales = [
-              'Massive institutional accumulation detected.',
-              'MACD crossing zero-line — breakout forming.',
-              'Trading significantly above 50-day MA.',
-              'Sector tailwinds driving outsized volume.',
-            ];
-            return (
-              <div
-                key={i}
-                className="glass-panel momentum-card"
-                style={{ padding: '1rem', cursor: 'default', flex: '0 0 180px', minWidth: '180px' }}
-                onMouseEnter={e => {
-                  if (mobile) return;
-                  const r = e.currentTarget.getBoundingClientRect();
-                  setTooltip({ text: rationales[i % rationales.length], x: r.left, y: r.top - 8, width: r.width });
-                }}
-                onMouseLeave={() => setTooltip(null)}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <img src={`https://financialmodelingprep.com/image-stock/${stock.symbol}.png`} alt=""
-                      style={{ width: '24px', height: '24px', borderRadius: '50%' }}
-                      onError={e => { e.target.style.display = 'none'; }} />
-                    <strong style={{ fontSize: '1rem' }}>{stock.symbol}</strong>
-                  </div>
-                  <div className={isPos ? 'trend-positive' : 'trend-negative'} style={{ fontSize: '0.82rem' }}>
-                    {isPos ? '+' : ''}{stock.changePercent.toFixed(2)}%
+      {/* ── 3b. Market News ──────────────────────────────────── */}
+      <div className="glass-panel db-news-panel" style={mobile ? fullCol : { minWidth: 0 }}>
+        <div className="db-section-hdr">
+          <Newspaper size={14} strokeWidth={2} />
+          <h2 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
+            Market News
+          </h2>
+        </div>
+
+        {news.length === 0 ? (
+          <div className="db-news-skeleton-wrap">
+            {Array.from({ length: 3 }).map((_, i) => <div key={i} className="db-news-skeleton" />)}
+          </div>
+        ) : (
+          <div className="db-news-list">
+            {news.map((item, i) => (
+              <a key={i} href={item.link} target="_blank" rel="noreferrer" className="db-news-item">
+                <div className="db-news-index">{String(i + 1).padStart(2, '0')}</div>
+                <div className="db-news-body">
+                  <div className="db-news-title">{item.title}</div>
+                  <div className="db-news-meta">
+                    <span className="db-news-src">{item.publisher}</span>
+                    <span className="db-news-time">{timeAgo(item.publishedAt)}</span>
                   </div>
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '0.2rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stock.name}</div>
-                <div style={{ marginTop: '0.4rem', fontSize: '1.05rem', fontWeight: 700 }}>${stock.price.toFixed(2)}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                <ExternalLink size={13} className="db-news-ext" />
+              </a>
+            ))}
+          </div>
+        )}
 
-      {tooltip && (
-        <div style={{
-          position: 'fixed', left: tooltip.x, top: tooltip.y, transform: 'translateY(-100%)',
-          width: Math.max(tooltip.width, 220), zIndex: 99999,
-          background: 'var(--bg-color)', border: '1px solid var(--accent-color)',
-          borderRadius: '12px', padding: '0.85rem 1rem', fontSize: '0.85rem',
-          lineHeight: '1.5', color: 'var(--text-primary)', boxShadow: '0 10px 30px rgba(0,0,0,0.7)',
-          pointerEvents: 'none',
-        }}>
-          <strong style={{ color: 'var(--accent-color)' }}>✦ AI Review:</strong> {tooltip.text}
-        </div>
-      )}
+        {/* Today's movers strip */}
+        {momentum.length > 0 && (
+          <>
+            <div className="db-section-hdr" style={{ marginTop: '1.25rem' }}>
+              <TrendingUp size={14} strokeWidth={2} />
+              <h2 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
+                Today's Movers
+              </h2>
+            </div>
+            <div className="db-movers-list">
+              {momentum.slice(0, 5).map((s, i) => {
+                const pos = s.changePercent >= 0;
+                return (
+                  <div key={i} className="db-mover-row">
+                    <img
+                      src={`https://financialmodelingprep.com/image-stock/${s.symbol}.png`}
+                      alt=""
+                      className="db-mover-logo"
+                      onError={e => { e.target.style.display = 'none'; }}
+                    />
+                    <span className="db-mover-sym">{s.symbol}</span>
+                    <span className="db-mover-price">${s.price?.toFixed(2)}</span>
+                    <span className={`db-mover-chg ${pos ? 'pos' : 'neg'}`}>
+                      {pos ? '+' : ''}{s.changePercent?.toFixed(2)}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
 
     </div>
   );

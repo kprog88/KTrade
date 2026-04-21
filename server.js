@@ -4,6 +4,7 @@ import cors from 'cors';
 import learnHandler from './api/learn.js';
 import aiInsightsHandler from './api/ai-insights.js';
 import marketNewsHandler from './api/market-news.js';
+import worldIndicesHandler from './api/world-indices.js';
 import YahooFinance from 'yahoo-finance2';
 
 const _yf = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
@@ -291,6 +292,9 @@ app.get('/api/exchange-rate', async (req, res) => {
     res.json({ rate: 1 }); // safe fallback
   }
 });
+
+// World market indices
+app.get('/api/world-indices', worldIndicesHandler);
 
 // Academy / Learn
 app.get('/api/learn', learnHandler);
