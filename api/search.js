@@ -1,18 +1,23 @@
+import YahooFinance from 'yahoo-finance2';
+
+const _yf = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
+
 export default async function handler(req, res) {
   try {
     const query = req.query.query;
-    const response = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${query}`);
-    const data = await response.json();
+    const results = await _yf.search(query, { newsCount: 0 });
     
-    const equities = data.quotes
+    const equities = (results.quotes || [])
       .filter(q => q.quoteType === 'EQUITY' || q.quoteType === 'ETF')
       .map(q => ({
         symbol: q.symbol,
         name: q.shortname || q.longname || q.symbol
       }))
       .slice(0, 10);
+      
     res.json(equities);
   } catch (error) {
+    console.error('Search error:', error.message);
     res.status(500).json({ error: 'Failed to search' });
   }
 }

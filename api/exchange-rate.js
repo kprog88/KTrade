@@ -1,21 +1,21 @@
+import YahooFinance from 'yahoo-finance2';
+
+const _yf = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
+
 export default async function handler(req, res) {
   try {
     const currency = req.query.currency.toUpperCase();
     if (currency === 'USD') return res.json({ rate: 1 });
     
-    let fxSymbol = `${currency}USD=X`;
-    if (currency === 'ILS' || currency === 'ILA') fxSymbol = 'ILSUSD=X';
-    if (currency === 'GBP' || currency === 'GBp') fxSymbol = 'GBPUSD=X';
+    let fxSym = `${currency}USD=X`;
+    if (currency === 'ILS' || currency === 'ILA') fxSym = 'ILSUSD=X';
+    if (currency === 'GBP' || currency === 'GBp') fxSym = 'GBPUSD=X';
     
-    const fxRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${fxSymbol}?interval=1d&range=1d`);
-    const fxData = await fxRes.json();
-    const fxMeta = fxData.chart.result[0].meta;
-    
-    let divisor = 1;
-    if (currency === 'ILA' || currency === 'GBp') divisor = 100;
-
-    res.json({ rate: fxMeta.regularMarketPrice / divisor });
+    const q = await _yf.quote(fxSym);
+    let divisor = (currency === 'ILA' || currency === 'GBp') ? 100 : 1;
+    res.json({ rate: (q.regularMarketPrice || 1) / divisor });
   } catch (error) {
+    console.error('Exchange rate error:', error.message);
     res.json({ rate: 1 }); // safe fallback
   }
 }
