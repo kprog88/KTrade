@@ -11,23 +11,43 @@ import { X, ChevronDown } from 'lucide-react'
 import './Portfolio.css'
 import './Watchlist.css'
 
-// ── ResizeObserver width hook — same pattern as TechnicalAnalysis ─────────────
+// ── ResizeObserver width hook — safe initial width so charts render immediately ─
 function useChartWidth() {
   const ref = useRef(null);
-  const [width, setWidth] = useState(0);
+  const safeInitial = () => typeof window !== 'undefined' ? Math.max(200, window.innerWidth - 96) : 300;
+  const [width, setWidth] = useState(safeInitial);
+
   const measure = useCallback(() => {
-    if (ref.current) {
-      const w = ref.current.getBoundingClientRect().width;
-      if (w > 0) setWidth(Math.floor(w));
+    if (!ref.current) return;
+    const w = ref.current.getBoundingClientRect().width;
+    if (w > 10) {
+      setWidth(Math.floor(w));
+    } else {
+      // Walk up parent chain for width when element is inside a collapsed or unmeasured container
+      let el = ref.current.parentElement;
+      while (el) {
+        const pw = el.getBoundingClientRect().width;
+        if (pw > 10) { setWidth(Math.floor(pw - 16)); return; }
+        el = el.parentElement;
+      }
     }
   }, []);
+
   useEffect(() => {
     measure();
-    if (!ref.current) return;
+    const t1 = setTimeout(measure, 50);
+    const t2 = setTimeout(measure, 200);
+    if (!ref.current) return () => { clearTimeout(t1); clearTimeout(t2); };
     const obs = new ResizeObserver(measure);
     obs.observe(ref.current);
-    return () => obs.disconnect();
+    return () => { obs.disconnect(); clearTimeout(t1); clearTimeout(t2); };
   }, [measure]);
+
+  useEffect(() => {
+    window.addEventListener('resize', measure, { passive: true });
+    return () => window.removeEventListener('resize', measure);
+  }, [measure]);
+
   return [ref, width];
 }
 

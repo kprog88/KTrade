@@ -87,28 +87,46 @@ export default async function handler(req, res) {
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 2048,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     });
 
     const raw = message.content[0].text.trim();
 
-    // Robustly extract the JSON object from the response
-    // Handles markdown fences, leading/trailing text, and partial responses
+    // Strip markdown fences if present
     let jsonStr = raw
-      .replace(/^```(?:json)?\s*/im, '')  // strip opening fence
-      .replace(/\s*```\s*$/m, '')          // strip closing fence
+      .replace(/^```(?:json)?\s*/im, '')
+      .replace(/\s*```\s*$/m, '')
       .trim();
 
-    // If there's still non-JSON preamble, find the first '{'
+    // Find the outermost JSON object bounds
     const firstBrace = jsonStr.indexOf('{');
     const lastBrace  = jsonStr.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1) {
       jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
     }
 
-    const parsed = JSON.parse(jsonStr);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      // Response was truncated — salvage what we can from the partial JSON
+      const summaryMatch    = jsonStr.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)/);
+      const topRiskMatch   = jsonStr.match(/"topRisk"\s*:\s*"((?:[^"\\]|\\.*)*)"/);
+      const suggestionMatch = jsonStr.match(/"suggestion"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      const summary    = summaryMatch    ? summaryMatch[1]    : 'Analysis unavailable (response was truncated).';
+      const topRisk    = topRiskMatch    ? topRiskMatch[1]    : 'Unable to determine — please retry.';
+      const suggestion = suggestionMatch ? suggestionMatch[1] : 'Please retry for a full analysis.';
+      // Extract any complete action objects
+      const actions = [];
+      const actionRe = /\{\s*"symbol"\s*:\s*"([^"]+)"\s*,\s*"action"\s*:\s*"([^"]+)"\s*,\s*"rationale"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g;
+      let m;
+      while ((m = actionRe.exec(jsonStr)) !== null) {
+        actions.push({ symbol: m[1], action: m[2], rationale: m[3] });
+      }
+      parsed = { summary, actions, topRisk, suggestion };
+    }
 
     res.setHeader('Cache-Control', 'no-store');
     res.json(parsed);
