@@ -132,11 +132,17 @@ export default async function handler(req, res) {
     res.json(parsed);
   } catch (err) {
     console.error('AI insights error:', err.message, err.status ?? '');
+    
+    let userMessage = `AI error: ${err.message}`;
+    if (err.status === 401 || err.message.includes('401')) {
+      userMessage = "AI Insight generation failed because your Anthropic API key is invalid or expired. Please update it in the .env file.";
+    }
+
     res.json({
-      summary: `AI error: ${err.message}`,
+      summary: userMessage,
       actions: [],
-      topRisk: "See server console for details.",
-      suggestion: "Check ANTHROPIC_API_KEY is set and the server was restarted.",
+      topRisk: "Missing or invalid API key.",
+      suggestion: "Open your .env file, update ANTHROPIC_API_KEY with a valid key from console.anthropic.com, and restart your server.",
     });
   }
 }

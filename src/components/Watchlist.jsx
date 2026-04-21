@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
 import { fetchQuote, fetchChart, fetchSearch } from '../data/api'
 import {
   ComposedChart, Area, Line, ReferenceLine,
@@ -11,32 +11,31 @@ import { X, ChevronDown } from 'lucide-react'
 import './Portfolio.css'
 import './Watchlist.css'
 
-// ── ResizeObserver width hook — safe initial width so charts render immediately ─
+// ── ResizeObserver width hook (shared by MiniChart and TAChart) ───────────────
 function useChartWidth() {
   const ref = useRef(null);
-  const safeInitial = () => typeof window !== 'undefined' ? Math.max(200, window.innerWidth - 96) : 300;
-  const [width, setWidth] = useState(safeInitial);
+  const [width, setWidth] = useState(0); // 0 = not yet measured; chart won't render
 
   const measure = useCallback(() => {
     if (!ref.current) return;
     const w = ref.current.getBoundingClientRect().width;
-    if (w > 10) {
-      setWidth(Math.floor(w));
-    } else {
-      // Walk up parent chain for width when element is inside a collapsed or unmeasured container
-      let el = ref.current.parentElement;
-      while (el) {
-        const pw = el.getBoundingClientRect().width;
-        if (pw > 10) { setWidth(Math.floor(pw - 16)); return; }
-        el = el.parentElement;
-      }
+    if (w > 10) { setWidth(Math.floor(w)); return; }
+    // Walk up DOM for a sized ancestor
+    let el = ref.current.parentElement;
+    while (el) {
+      const pw = el.getBoundingClientRect().width;
+      if (pw > 10) { setWidth(Math.floor(pw - 16)); return; }
+      el = el.parentElement;
     }
+    setWidth(Math.max(200, window.innerWidth - 80));
   }, []);
 
+  // Fires before first paint — gets correct width immediately
+  useLayoutEffect(() => { measure(); }, [measure]);
+
   useEffect(() => {
-    measure();
-    const t1 = setTimeout(measure, 50);
-    const t2 = setTimeout(measure, 200);
+    const t1 = setTimeout(measure, 60);
+    const t2 = setTimeout(measure, 300);
     if (!ref.current) return () => { clearTimeout(t1); clearTimeout(t2); };
     const obs = new ResizeObserver(measure);
     obs.observe(ref.current);
@@ -77,11 +76,13 @@ function MiniChart({ chartData, isPositive }) {
   const [ref, width] = useChartWidth();
   return (
     <div ref={ref} style={{ width: '100%', height: 80 }}>
-      <LineChart data={chartData} width={width} height={80}>
-        <YAxis domain={['auto', 'auto']} hide />
-        <Line type="monotone" dataKey="value" stroke={isPositive ? 'var(--success-color)' : 'var(--danger-color)'}
-          strokeWidth={2} dot={false} isAnimationActive={false} />
-      </LineChart>
+      {width > 0 && (
+        <LineChart data={chartData} width={width} height={80}>
+          <YAxis domain={['auto', 'auto']} hide />
+          <Line type="monotone" dataKey="value" stroke={isPositive ? 'var(--success-color)' : 'var(--danger-color)'}
+            strokeWidth={2} dot={false} isAnimationActive={false} />
+        </LineChart>
+      )}
     </div>
   );
 }
@@ -198,7 +199,7 @@ function TAChart({ symbol, onClose }) {
 
       {/* Chart — overflow-x hidden prevents horizontal bleed on mobile */}
       <div ref={chartRef} style={{ width: '100%', height: 260, overflow: 'hidden' }}>
-        <ComposedChart
+        {chartWidth > 0 && <ComposedChart
           data={enriched}
           width={chartW}
           height={260}
@@ -256,7 +257,7 @@ function TAChart({ symbol, onClose }) {
           {/* Price area (on top) */}
           <Area type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={2}
             fill={`url(#wl-grad-${symbol})`} dot={false} isAnimationActive={false} activeDot={{ r: 3 }} />
-        </ComposedChart>
+        </ComposedChart>}
       </div>
     </div>
   );

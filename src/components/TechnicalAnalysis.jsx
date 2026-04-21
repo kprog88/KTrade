@@ -1,9 +1,5 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import {
-  ComposedChart, Line, Bar, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ReferenceLine, Cell
-} from 'recharts'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
+import { createChart, ColorType } from 'lightweight-charts'
 import { TrendingUp, BarChart2, Activity, Building2, UserCheck, AlertTriangle, ChevronDown } from 'lucide-react'
 import { usePortfolio } from '../context/PortfolioContext'
 import { fetchTechnical, fetchInstitutional } from '../data/api'
@@ -330,53 +326,41 @@ function buildInstInterpretation(inst) {
 
 function useChartWidth(isActive) {
   const ref = useRef(null);
-
-  // Safe immediate initial width: window minus typical padding (48px sides on mobile)
-  const safeInitial = () => {
-    if (typeof window === 'undefined') return 320;
-    return Math.max(200, window.innerWidth - 48);
-  };
-
-  const [width, setWidth] = useState(safeInitial);
+  const [width, setWidth] = useState(0); // 0 = not yet measured; chart won't render
 
   const measure = useCallback(() => {
     if (!ref.current) return;
     const w = ref.current.getBoundingClientRect().width;
-    if (w > 10) {
-      setWidth(Math.floor(w));
-    } else {
-      // Element reports 0 (inside collapsed accordion) — use parent chain
-      let el = ref.current.parentElement;
-      while (el) {
-        const pw = el.getBoundingClientRect().width;
-        if (pw > 10) { setWidth(Math.floor(pw - 24)); return; }
-        el = el.parentElement;
-      }
-      // Last resort: window width minus chrome
-      setWidth(Math.max(200, window.innerWidth - 48));
+    if (w > 10) { setWidth(Math.floor(w)); return; }
+    // Walk up DOM for a sized ancestor (handles accordion collapsed state)
+    let el = ref.current.parentElement;
+    while (el) {
+      const pw = el.getBoundingClientRect().width;
+      if (pw > 10) { setWidth(Math.floor(pw - 24)); return; }
+      el = el.parentElement;
     }
+    // Absolute fallback
+    setWidth(Math.max(200, window.innerWidth - 80));
   }, []);
 
+  // Fires synchronously before paint — gets the real container width on first render
+  useLayoutEffect(() => { measure(); }, [measure]);
+
+  // ResizeObserver keeps width in sync as layout changes
   useEffect(() => {
-    measure();
     if (!ref.current) return;
     const obs = new ResizeObserver(measure);
     obs.observe(ref.current);
     return () => obs.disconnect();
   }, [measure]);
 
-  // Re-measure at key moments after accordion opens
+  // Re-measure after accordion open animation completes
   useEffect(() => {
     if (!isActive) return;
-    const timers = [
-      setTimeout(measure, 30),
-      setTimeout(measure, 200),
-      setTimeout(measure, 450),
-    ];
+    const timers = [setTimeout(measure, 30), setTimeout(measure, 200), setTimeout(measure, 450)];
     return () => timers.forEach(clearTimeout);
   }, [isActive, measure]);
 
-  // Also re-measure on window resize
   useEffect(() => {
     window.addEventListener('resize', measure, { passive: true });
     return () => window.removeEventListener('resize', measure);
@@ -479,157 +463,95 @@ function StockCard({ holding, isActive, onSignalReady }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sigData]);
 
-  const gradId    = `grad-${holding.symbol.replace(/[^a-z0-9]/gi, '_')}`;
-  const price     = holding.currentPrice || holding.avgPrice;
-  const sym       = holding.currencySymbol || '$';
-  const changePct = holding.currentPrice && holding.avgPrice
-    ? ((holding.currentPrice - holding.avgPrice) / holding.avgPrice * 100) : 0;
-  const isUp = changePct >= 0;
+  useEffect(() => {
+    if (!chartRef.current || chartData.length === 0) return;
 
-  const plainSummary = useMemo(() => {
-    if (!sigData) return null;
-    return buildPlainSummary(holding.symbol, sigData, holding);
-  }, [sigData, holding]);
+    // Use ResizeObserver chartWidth or a default 
+    const w = Math.max(200, Math.min(chartWidth - 2, 1200));
 
-  const xInterval = chartData.length > 0 ? Math.max(1, Math.floor(chartData.length / 7)) : 1;
+    // Sort data chronologically for TradingView
+    const sortedData = [...chartData].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const chart = createChart(chartRef.current, {
+      layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: '#94a3b8' },
+      grid: { vertLines: { color: 'rgba(255, 255, 255, 0.04)' }, horzLines: { color: 'rgba(255, 255, 255, 0.04)' } },
+      width: w,
+      height: CHART_H,
+      rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.1)' },
+      timeScale: { borderColor: 'rgba(255, 255, 255, 0.1)' },
+    });
+
+    if (activeTab === 'Price & MAs') {
+      const areaSeries = chart.addAreaSeries({
+        lineColor: '#8b5cf6', topColor: 'rgba(139, 92, 246, 0.3)', bottomColor: 'rgba(139, 92, 246, 0.0)', lineWidth: 2,
+      });
+      areaSeries.setData(sortedData.map(d => ({ time: d.date, value: d.close })));
+
+      if (visibleMAs.ma20) {
+        const ma20 = chart.addLineSeries({ color: '#3b82f6', lineWidth: 1.5, lineStyle: 2 });
+        ma20.setData(sortedData.filter(d => d.sma20).map(d => ({ time: d.date, value: d.sma20 })));
+      }
+      if (visibleMAs.ma50) {
+        const ma50 = chart.addLineSeries({ color: '#f59e0b', lineWidth: 1.5, lineStyle: 2 });
+        ma50.setData(sortedData.filter(d => d.sma50).map(d => ({ time: d.date, value: d.sma50 })));
+      }
+      if (visibleMAs.ma150) {
+        const ma150 = chart.addLineSeries({ color: '#ec4899', lineWidth: 1.5, lineStyle: 2 });
+        ma150.setData(sortedData.filter(d => d.sma150).map(d => ({ time: d.date, value: d.sma150 })));
+      }
+      const bUpper = chart.addLineSeries({ color: 'rgba(148,163,184,0.4)', lineWidth: 1, lineStyle: 3 });
+      bUpper.setData(sortedData.filter(d => d.bolUpper).map(d => ({ time: d.date, value: d.bolUpper })));
+      const bLower = chart.addLineSeries({ color: 'rgba(148,163,184,0.4)', lineWidth: 1, lineStyle: 3 });
+      bLower.setData(sortedData.filter(d => d.bolLower).map(d => ({ time: d.date, value: d.bolLower })));
+    } else if (activeTab === 'RSI') {
+      const rsiSeries = chart.addLineSeries({ color: '#8b5cf6', lineWidth: 2 });
+      rsiSeries.setData(sortedData.filter(d => d.rsi).map(d => ({ time: d.date, value: d.rsi })));
+      // Adding horizontal reference lines for RSI
+      chart.addLineSeries({ color: '#ef4444', lineWidth: 1, lineStyle: 2 }).setData(sortedData.map(d => ({ time: d.date, value: 70 })));
+      chart.addLineSeries({ color: '#10b981', lineWidth: 1, lineStyle: 2 }).setData(sortedData.map(d => ({ time: d.date, value: 30 })));
+    } else if (activeTab === 'MACD') {
+      const macdSeries = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2 });
+      macdSeries.setData(sortedData.filter(d => d.macd).map(d => ({ time: d.date, value: d.macd })));
+      
+      const sigSeries = chart.addLineSeries({ color: '#f59e0b', lineWidth: 1.5, lineStyle: 2 });
+      sigSeries.setData(sortedData.filter(d => d.signal).map(d => ({ time: d.date, value: d.signal })));
+      
+      const histSeries = chart.addHistogramSeries({});
+      histSeries.setData(sortedData.filter(d => d.hist).map(d => ({ time: d.date, value: d.hist, color: d.hist >= 0 ? '#10b981' : '#ef4444' })));
+    } else if (activeTab === 'Volume') {
+      const volSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' } });
+      volSeries.setData(sortedData.map(d => ({ time: d.date, value: d.volume, color: d.close >= d.open ? '#10b981' : '#ef4444' })));
+    }
+
+    chart.timeScale().fitContent();
+
+    return () => { chart.remove(); };
+  }, [chartData, activeTab, chartWidth, visibleMAs]);
+
+  function renderChartTabs() {
+    if (activeTab === 'Price & MAs') {
+      return (
+        <div className="ta-ma-toggles" style={{ marginBottom: '10px' }}>
+          {MA_OPTIONS.map(({ key, label, color }) => (
+            <button
+              key={key}
+              className={`ta-ma-toggle ${visibleMAs[key] ? 'on' : 'off'}`}
+              style={{ '--ma-color': color }}
+              onClick={() => toggleMA(key)}
+            >
+              <span className="ta-ma-dot" />
+              {label}
+            </button>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  }
 
   const toggleMA = key => setVisibleMAs(p => ({ ...p, [key]: !p[key] }));
 
   const CHART_H = 240;
-
-  function renderChart() {
-    // chartWidth comes from ResizeObserver — capped to prevent overflow on wide screens.
-    // Subtract a few px so the SVG never exceeds the container and causes horizontal scroll.
-    const w = Math.max(200, Math.min(chartWidth - 2, 1200));
-    const common = {
-      data: chartData,
-      width: w,
-      height: CHART_H,
-      margin: { top: 4, right: 4, left: 0, bottom: 4 },
-    };
-
-    if (activeTab === 'Price & MAs') {
-      return (
-        <>
-          {/* MA Toggle Buttons */}
-          <div className="ta-ma-toggles">
-            {MA_OPTIONS.map(({ key, label, color }) => (
-              <button
-                key={key}
-                className={`ta-ma-toggle ${visibleMAs[key] ? 'on' : 'off'}`}
-                style={{ '--ma-color': color }}
-                onClick={() => toggleMA(key)}
-              >
-                <span className="ta-ma-dot" />
-                {label}
-              </button>
-            ))}
-          </div>
-          <ComposedChart {...common}>
-            <defs>
-              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}   />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
-            <YAxis domain={['auto', 'auto']} tick={axisStyle} width={62}
-              tickLine={false} axisLine={false} tickFormatter={v => v?.toFixed(0)} />
-            <Tooltip contentStyle={tooltipStyle}
-              formatter={(v, n) => [`${sym}${v?.toFixed(2)}`, n]} />
-            <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '6px' }} />
-            <Area type="monotone" dataKey="close" name="Price" stroke="#8b5cf6"
-              fill={`url(#${gradId})`} fillOpacity={1} strokeWidth={2}
-              dot={false} activeDot={{ r: 3 }} />
-            {visibleMAs.ma20 && (
-              <Line type="monotone" dataKey="sma20" name="MA 20" stroke="#3b82f6"
-                strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
-            )}
-            {visibleMAs.ma50 && (
-              <Line type="monotone" dataKey="sma50" name="MA 50" stroke="#f59e0b"
-                strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
-            )}
-            {visibleMAs.ma150 && (
-              <Line type="monotone" dataKey="sma150" name="MA 150" stroke="#ec4899"
-                strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
-            )}
-            <Line type="monotone" dataKey="bolUpper" name="BB Upper"
-              stroke="rgba(148,163,184,0.4)" strokeWidth={1}
-              dot={false} strokeDasharray="2 3" connectNulls />
-            <Line type="monotone" dataKey="bolLower" name="BB Lower"
-              stroke="rgba(148,163,184,0.4)" strokeWidth={1}
-              dot={false} strokeDasharray="2 3" connectNulls />
-          </ComposedChart>
-        </>
-      );
-    }
-
-    if (activeTab === 'RSI') {
-      return (
-        <ComposedChart {...common}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
-          <YAxis domain={[0, 100]} tick={axisStyle} width={32}
-            tickLine={false} axisLine={false} ticks={[0, 30, 50, 70, 100]} />
-          <Tooltip contentStyle={tooltipStyle}
-            formatter={v => [v?.toFixed(1), 'RSI']} />
-          <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="4 2" strokeWidth={1.5}
-            label={{ value: '70 — Overbought', position: 'insideTopRight',
-              style: { fontSize: 10, fill: '#ef4444' } }} />
-          <ReferenceLine y={50} stroke="rgba(255,255,255,0.18)" strokeDasharray="3 3" strokeWidth={1} />
-          <ReferenceLine y={30} stroke="#10b981" strokeDasharray="4 2" strokeWidth={1.5}
-            label={{ value: '30 — Oversold', position: 'insideBottomRight',
-              style: { fontSize: 10, fill: '#10b981' } }} />
-          <Area type="monotone" dataKey="rsi" name="RSI(14)"
-            stroke="#8b5cf6" fill="rgba(139,92,246,0.12)"
-            strokeWidth={2} dot={false} activeDot={{ r: 3 }} connectNulls />
-        </ComposedChart>
-      );
-    }
-
-    if (activeTab === 'MACD') {
-      return (
-        <ComposedChart {...common}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
-          <YAxis tick={axisStyle} width={52}
-            tickLine={false} axisLine={false} tickFormatter={v => v?.toFixed(2)} />
-          <Tooltip contentStyle={tooltipStyle}
-            formatter={(v, n) => [v?.toFixed(4), n]} />
-          <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '6px' }} />
-          <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
-          <Bar dataKey="hist" name="Histogram" radius={[2, 2, 0, 0]} maxBarSize={8}>
-            {chartData.map((d, i) => (
-              <Cell key={i} fill={d.hist >= 0 ? '#10b981' : '#ef4444'} opacity={0.8} />
-            ))}
-          </Bar>
-          <Line type="monotone" dataKey="macd"   name="MACD"   stroke="#3b82f6"
-            strokeWidth={2}   dot={false} connectNulls />
-          <Line type="monotone" dataKey="signal" name="Signal" stroke="#f59e0b"
-            strokeWidth={1.5} dot={false} strokeDasharray="5 2" connectNulls />
-        </ComposedChart>
-      );
-    }
-
-    // Volume
-    return (
-      <ComposedChart {...common}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="date" tick={axisStyle} interval={xInterval} tickLine={false} />
-          <YAxis tick={axisStyle} width={52}
-            tickLine={false} axisLine={false}
-            tickFormatter={v => (v / 1e6).toFixed(0) + 'M'} />
-          <Tooltip contentStyle={tooltipStyle}
-            formatter={v => [(v / 1e6).toFixed(2) + 'M shares', 'Volume']} />
-          <Bar dataKey="volume" name="Volume" radius={[2, 2, 0, 0]} maxBarSize={10}>
-            {chartData.map((d, i) => (
-              <Cell key={i} fill={d.close >= d.open ? '#10b981' : '#ef4444'} opacity={0.75} />
-            ))}
-          </Bar>
-        </ComposedChart>
-    );
-  }
 
   const badgeClass = type => ({
     buy:            'ta-badge buy',
@@ -638,16 +560,6 @@ function StockCard({ holding, isActive, onSignalReady }) {
     'neutral-buy':  'ta-badge neutral-buy',
     'neutral-sell': 'ta-badge neutral-sell',
   })[type] || 'ta-badge neutral';
-
-  const overallClass = sigData
-    ? ({
-        'strong-buy':  'ta-overall strong-buy',
-        'buy':         'ta-overall buy',
-        'sell':        'ta-overall sell',
-        'strong-sell': 'ta-overall strong-sell',
-        'hold':        'ta-overall hold',
-      })[sigData.overallType] || 'ta-overall hold'
-    : 'ta-overall hold';
 
   return (
     <div className="ta-card-body">
@@ -674,11 +586,12 @@ function StockCard({ holding, isActive, onSignalReady }) {
             ))}
           </div>
 
-          {/* ── Chart ── */}
-          {/* chartRef gives ResizeObserver the real pixel width — fixes mobile rendering */}
-          <div ref={chartRef} className="ta-chart-area" style={{ width: '100%', height: CHART_H + 30 }}>
-            {renderChart()}
-          </div>
+          {/* ── Chart Tabs and toggles ── */}
+          {renderChartTabs()}
+
+          {/* ── TradingView Chart Container ── */}
+          {/* chartRef is used by both ResizeObserver and TV createChart */}
+          <div ref={chartRef} className="ta-chart-area" style={{ width: '100%', height: CHART_H + 30, position: 'relative' }} />
 
           {/* ── Signal Badges ── */}
           {sigData && (
