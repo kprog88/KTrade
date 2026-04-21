@@ -14,12 +14,10 @@ export default async function handler(req, res) {
     let history;
 
     try {
-      // Primary: yahoo-finance2 (handles auth automatically)
-      const result = await yf.chart(symbol, {
-        period1: oneYearAgo,
-        period2: now,
-        interval: '1d',
-      });
+      // Primary: yahoo-finance2 with a fail-fast timeout
+      const promiseC = yf.chart(symbol, { period1: oneYearAgo, period2: now, interval: '1d' });
+      const timeout = new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 2500));
+      const result = await Promise.race([promiseC, timeout]);
 
       history = (result.quotes || [])
         .map(q => ({
@@ -33,9 +31,8 @@ export default async function handler(req, res) {
         .filter(d => d.close !== null && d.close > 0);
 
     } catch (yf2Err) {
-      console.warn('yahoo-finance2 failed, falling back to direct fetch:', yf2Err.message);
+      console.warn('yahoo-finance2 failed or timed out, trying proxy...', yf2Err.message);
 
-      // Fallback: direct Yahoo Finance v8 API bypassed through proxies
       const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`;
       
       const proxies = [
@@ -46,7 +43,10 @@ export default async function handler(req, res) {
       let response = null;
       for (const pUrl of proxies) {
         try {
-          const res = await fetch(pUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
+          const controller = new AbortController();
+          const id = setTimeout(() => controller.abort(), 3500);
+          const res = await fetch(pUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: controller.signal });
+          clearTimeout(id);
           if (res.ok) {
             response = res;
             break;

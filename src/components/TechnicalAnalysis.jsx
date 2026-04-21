@@ -81,6 +81,7 @@ function buildSignals(ohlcv) {
 
   const sma20    = calcSMA(closes, 20);
   const sma50    = calcSMA(closes, 50);
+  const sma120   = calcSMA(closes, 120);
   const sma150   = calcSMA(closes, 150);
   const rsiVals  = calcRSI(closes, 14);
   const macdVals = calcMACD(closes);
@@ -89,6 +90,7 @@ function buildSignals(ohlcv) {
   const lc    = lastValid(closes);
   const ls20  = lastValid(sma20);
   const ls50  = lastValid(sma50);
+  const ls120 = lastValid(sma120);
   const ls150 = lastValid(sma150);
   const lr    = lastValid(rsiVals);
   const lm    = lastValid(macdVals.line);
@@ -114,8 +116,8 @@ function buildSignals(ohlcv) {
 
   // MA trend
   let maSig;
-  if      (lc > ls20 && ls20 > ls50) maSig = { label: 'Uptrend ↑↑',   type: 'buy'          };
-  else if (lc < ls20 && ls20 < ls50) maSig = { label: 'Downtrend ↓↓', type: 'sell'         };
+  if      (lc > ls20 && ls20 > ls50 && ls50 > ls120) maSig = { label: 'Strong Uptrend ↑↑',   type: 'buy'          };
+  else if (lc < ls20 && ls20 < ls50 && ls50 < ls120) maSig = { label: 'Strong Downtrend ↓↓', type: 'sell'         };
   else if (lc > ls20)                maSig = { label: 'Above MA20',    type: 'neutral-buy'  };
   else                               maSig = { label: 'Below MA20',    type: 'neutral-sell' };
 
@@ -158,8 +160,8 @@ function buildSignals(ohlcv) {
 
   return {
     signals, overall, overallType,
-    computed: { sma20, sma50, sma150, rsiVals, macdVals, bolVals },
-    stats: { lc, ls20, ls50, ls150, lr, lm, lu, ll },
+    computed: { sma20, sma50, sma120, sma150, rsiVals, macdVals, bolVals },
+    stats: { lc, ls20, ls50, ls120, ls150, lr, lm, lu, ll },
   };
 }
 
@@ -194,10 +196,10 @@ function buildPlainSummary(symbol, sigData, holding) {
   const bullets = [
     {
       icon: '📈',
-      title: 'Price vs. its average lines',
+      title: 'Price vs. Moving Averages',
       text: lc > ls20
-        ? `The price (${sym}${lc?.toFixed(2)}) is above its 20-day average (${sym}${ls20?.toFixed(2)}). Think of the average as a "normal zone" for the stock — being above it means buyers are in charge right now.`
-        : `The price (${sym}${lc?.toFixed(2)}) has dropped below its 20-day average (${sym}${ls20?.toFixed(2)}). When a stock falls below its average, it's a sign that sellers are currently in control.`,
+        ? `The price (${sym}${lc?.toFixed(2)}) is currently above its 20-day average (${sym}${ls20?.toFixed(2)}), which means buyers are in short-term control. ${lc > ls120 ? `Crucially, it is also above its longer term 120-day average (${sym}${ls120?.toFixed(2)}), showing strong, sustained historical momentum.` : `However, it is fighting resistance below its 120-day historically average (${sym}${ls120?.toFixed(2)}).`}`
+        : `The price (${sym}${lc?.toFixed(2)}) has dropped below its 20-day average (${sym}${ls20?.toFixed(2)}), signaling short-term weakness. ${lc < ls120 ? `It is also stuck under its long-term 120-day average (${sym}${ls120?.toFixed(2)}), meaning the overall multi-month trend is negative and recovering will be difficult.` : `Fortunately, it is still sitting safely above its 120-day average (${sym}${ls120?.toFixed(2)}), meaning the overall longer-term trend is still intact.`}`,
     },
     {
       icon: '⚡',
@@ -376,6 +378,7 @@ const CHART_TABS = ['Price & MAs', 'RSI', 'MACD', 'Volume'];
 const MA_OPTIONS = [
   { key: 'ma20',  label: 'MA 20',  dataKey: 'sma20',  color: '#3b82f6' },
   { key: 'ma50',  label: 'MA 50',  dataKey: 'sma50',  color: '#f59e0b' },
+  { key: 'ma120',  label: 'MA 120',  dataKey: 'sma120',  color: '#10b981' },
   { key: 'ma150', label: 'MA 150', dataKey: 'sma150', color: '#ec4899' },
 ];
 
@@ -397,7 +400,7 @@ function StockCard({ holding, isActive, onSignalReady }) {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
   const [activeTab, setActiveTab] = useState('Price & MAs');
-  const [visibleMAs, setVisibleMAs] = useState({ ma20: true, ma50: true, ma150: true });
+  const [visibleMAs, setVisibleMAs] = useState({ ma20: true, ma50: true, ma120: true, ma150: false });
   const [instData,     setInstData]     = useState(null);
   const [instLoading,  setInstLoading]  = useState(true);
   const [instError,    setInstError]    = useState(null);
@@ -436,7 +439,7 @@ function StockCard({ holding, isActive, onSignalReady }) {
   const { chartData, sigData } = useMemo(() => {
     if (ohlcv.length < 30) return { chartData: [], sigData: null };
     const { computed, ...rest } = buildSignals(ohlcv);
-    const { sma20, sma50, sma150, rsiVals, macdVals, bolVals } = computed;
+    const { sma20, sma50, sma120, sma150, rsiVals, macdVals, bolVals } = computed;
     const cd = ohlcv.map((d, i) => ({
       date:     d.date.slice(5),
       close:    d.close,
@@ -444,6 +447,7 @@ function StockCard({ holding, isActive, onSignalReady }) {
       volume:   d.volume,
       sma20:    sma20[i],
       sma50:    sma50[i],
+      sma120:   sma120 ? sma120[i] : null,
       sma150:   sma150[i],
       rsi:      rsiVals[i],
       macd:     macdVals.line[i],
@@ -494,6 +498,10 @@ function StockCard({ holding, isActive, onSignalReady }) {
       if (visibleMAs.ma50) {
         const ma50 = chart.addLineSeries({ color: '#f59e0b', lineWidth: 1.5, lineStyle: 2 });
         ma50.setData(sortedData.filter(d => d.sma50).map(d => ({ time: d.date, value: d.sma50 })));
+      }
+      if (visibleMAs.ma120) {
+        const ma120 = chart.addLineSeries({ color: '#10b981', lineWidth: 1.5, lineStyle: 2 });
+        ma120.setData(sortedData.filter(d => d.sma120).map(d => ({ time: d.date, value: d.sma120 })));
       }
       if (visibleMAs.ma150) {
         const ma150 = chart.addLineSeries({ color: '#ec4899', lineWidth: 1.5, lineStyle: 2 });
