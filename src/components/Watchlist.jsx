@@ -77,13 +77,11 @@ function MiniChart({ chartData, isPositive }) {
   const [ref, width] = useChartWidth();
   return (
     <div ref={ref} style={{ width: '100%', height: 80 }}>
-      {width > 0 && (
-        <LineChart data={chartData} width={width} height={80}>
-          <YAxis domain={['auto', 'auto']} hide />
-          <Line type="monotone" dataKey="value" stroke={isPositive ? 'var(--success-color)' : 'var(--danger-color)'}
-            strokeWidth={2} dot={false} isAnimationActive={false} />
-        </LineChart>
-      )}
+      <LineChart data={chartData} width={width} height={80}>
+        <YAxis domain={['auto', 'auto']} hide />
+        <Line type="monotone" dataKey="value" stroke={isPositive ? 'var(--success-color)' : 'var(--danger-color)'}
+          strokeWidth={2} dot={false} isAnimationActive={false} />
+      </LineChart>
     </div>
   );
 }
@@ -175,8 +173,7 @@ function TAChart({ symbol, onClose }) {
 
         {/* chartRef measures the real pixel width via ResizeObserver */}
         <div ref={chartRef} style={{ width: '100%', height: 260 }}>
-          {chartWidth > 0 && (
-            <ComposedChart data={enriched} width={chartWidth} height={260} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <ComposedChart data={enriched} width={chartWidth} height={260} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
                 tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis domain={domain} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
@@ -206,7 +203,6 @@ function TAChart({ symbol, onClose }) {
               <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2}
                 dot={false} isAnimationActive={false} name="Price" />
             </ComposedChart>
-          )}
         </div>
       </div>
   );
