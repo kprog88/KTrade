@@ -498,8 +498,9 @@ function StockCard({ holding, isActive, onSignalReady }) {
   const CHART_H = 240;
 
   function renderChart() {
-    // chartWidth is always ≥ 200 (guaranteed by the hook's window-based fallback).
-    const w = Math.min(chartWidth, 1200); // cap for very wide desktop screens
+    // chartWidth comes from ResizeObserver — capped to prevent overflow on wide screens.
+    // Subtract a few px so the SVG never exceeds the container and causes horizontal scroll.
+    const w = Math.max(200, Math.min(chartWidth - 2, 1200));
     const common = {
       data: chartData,
       width: w,

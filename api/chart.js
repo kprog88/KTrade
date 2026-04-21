@@ -16,6 +16,12 @@ export default async function handler(req, res) {
     } else if (period === '1mo') {
       period1 = now - 30 * 24 * 60 * 60;
       interval = '1d';
+    } else if (period === '3mo') {
+      period1 = now - 90 * 24 * 60 * 60;
+      interval = '1d';
+    } else if (period === '6mo') {
+      period1 = now - 180 * 24 * 60 * 60;
+      interval = '1d';
     } else if (period === '5y') {
       period1 = now - 5 * 365 * 24 * 60 * 60;
       interval = '1wk';

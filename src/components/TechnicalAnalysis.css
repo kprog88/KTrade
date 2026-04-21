@@ -190,7 +190,8 @@
 
 .ta-chart-area {
   margin-bottom: 1.25rem;
-  overflow: visible; /* allow recharts SVG labels to render outside bounds */
+  overflow-x: hidden; /* prevent horizontal bleed */
+  overflow-y: visible; /* allow tooltip/legend to render above/below */
   min-height: 240px;
 }
 

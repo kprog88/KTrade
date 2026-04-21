@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { fetchQuote, fetchChart, fetchSearch } from '../data/api'
 import {
-  ComposedChart, Line, ReferenceLine,
+  ComposedChart, Area, Line, ReferenceLine,
   XAxis, YAxis, Tooltip,
   LineChart
 } from 'recharts'
@@ -86,27 +86,37 @@ function MiniChart({ chartData, isPositive }) {
   );
 }
 
-// ── Expanded TA chart ────────────────────────────────────────────────────────
+// ── Indicators for TAChart ───────────────────────────────────────────────────
 
 function ma200w(weeklyData) {
   if (weeklyData.length < 200) return null;
-  const last200 = weeklyData.slice(-200);
-  return last200.reduce((s, d) => s + d.value, 0) / 200;
+  return weeklyData.slice(-200).reduce((s, d) => s + d.value, 0) / 200;
 }
 
+const LEGEND_ITEMS = [
+  { key: 'price',  label: 'Price',    color: '#8b5cf6' },
+  { key: 'ma20',   label: 'MA 20',    color: '#3b82f6' },
+  { key: 'ma50',   label: 'MA 50',    color: '#f59e0b' },
+  { key: 'ma200w', label: 'MA 200W',  color: '#38bdf8' },
+  { key: 'sup',    label: 'Support',  color: '#22c55e' },
+  { key: 'res',    label: 'Resist.',  color: '#ef4444' },
+];
+
+// ── Expanded TA chart ────────────────────────────────────────────────────────
+
 function TAChart({ symbol, onClose }) {
-  const [chartData, setChartData]   = useState([]);
-  const [ma200val, setMa200val]     = useState(null);
-  const [loading, setLoading]       = useState(true);
-  const [chartRef, chartWidth]      = useChartWidth();
+  const [chartData, setChartData] = useState([]);
+  const [ma200val, setMa200val]   = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [chartRef, chartWidth]    = useChartWidth();
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetchChart(symbol, '1mo'),
-      fetchChart(symbol, '5y'),
-    ]).then(([monthly, weekly]) => {
-      setChartData(monthly || []);
+      fetchChart(symbol, '6mo'),   // ~125 trading days → enough for MA20 + MA50
+      fetchChart(symbol, '5y'),    // weekly → MA200W
+    ]).then(([sixmo, weekly]) => {
+      setChartData(sixmo || []);
       setMa200val(ma200w(weekly || []));
       setLoading(false);
     });
@@ -116,7 +126,7 @@ function TAChart({ symbol, onClose }) {
     return (
       <div className="wl-ta-wrap">
         <div className="wl-ta-header">
-          <span className="wl-ta-title">{symbol} — Technical Analysis</span>
+          <span className="wl-ta-title">{symbol} — Chart</span>
           <button className="wl-ta-close" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="wl-ta-loading">Loading chart…</div>
@@ -128,7 +138,7 @@ function TAChart({ symbol, onClose }) {
     return (
       <div className="wl-ta-wrap">
         <div className="wl-ta-header">
-          <span className="wl-ta-title">{symbol} — Technical Analysis</span>
+          <span className="wl-ta-title">{symbol} — Chart</span>
           <button className="wl-ta-close" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="wl-ta-loading">No chart data available.</div>
@@ -139,72 +149,116 @@ function TAChart({ symbol, onClose }) {
   const ma20vals = sma(chartData, 20);
   const ma50vals = sma(chartData, 50);
   const { support, resistance } = supportResistance(chartData);
+  const hasMa50  = ma50vals.some(v => v !== null);
+  const hasMa200 = ma200val != null;
 
   const enriched = chartData.map((d, i) => ({
     ...d,
-    ma20: ma20vals[i] !== null ? +ma20vals[i].toFixed(2) : null,
-    ma50: ma50vals[i] !== null ? +ma50vals[i].toFixed(2) : null,
+    ma20: ma20vals[i] != null ? +ma20vals[i].toFixed(2) : null,
+    ma50: hasMa50 && ma50vals[i] != null ? +ma50vals[i].toFixed(2) : null,
   }));
 
-  const prices   = chartData.map(d => d.value);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const pad      = (maxPrice - minPrice) * 0.08;
-  const domain   = [+(minPrice - pad).toFixed(2), +(maxPrice + pad).toFixed(2)];
+  const prices = chartData.map(d => d.value);
+  const minP   = Math.min(...prices);
+  const maxP   = Math.max(...prices);
+  const pad    = (maxP - minP) * 0.08 || 1;
+  const domain = [+(minP - pad).toFixed(2), +(maxP + pad).toFixed(2)];
 
-  const fmt = v => `$${v?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // Reduce X-axis ticks so labels don't overlap on mobile
+  const tickCount  = chartWidth < 400 ? 4 : 7;
+  const xInterval  = Math.max(1, Math.floor(chartData.length / tickCount));
+  const chartW     = Math.min(chartWidth, 1200);
+  const fmt        = v => `$${v?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const visibleLegend = LEGEND_ITEMS.filter(l => {
+    if (l.key === 'ma200w') return hasMa200;
+    if (l.key === 'sup')    return support != null;
+    if (l.key === 'res')    return resistance != null;
+    if (l.key === 'ma50')   return hasMa50;
+    return true;
+  });
 
   return (
-      <div className="wl-ta-wrap">
-        <div className="wl-ta-header">
-          <span className="wl-ta-title">{symbol} — 30-Day Chart</span>
-          <div className="wl-ta-legend">
-            <span className="wl-ta-leg-item" style={{ color: '#6366f1' }}>—— Price</span>
-            <span className="wl-ta-leg-item" style={{ color: '#f59e0b' }}>—— MA20</span>
-            {ma50vals.some(v => v !== null) && (
-              <span className="wl-ta-leg-item" style={{ color: '#ec4899' }}>—— MA50</span>
-            )}
-            {ma200val   && <span className="wl-ta-leg-item" style={{ color: '#38bdf8' }}>—— MA200W</span>}
-            {support    && <span className="wl-ta-leg-item" style={{ color: 'var(--success-color)' }}>—— Support</span>}
-            {resistance && <span className="wl-ta-leg-item" style={{ color: 'var(--danger-color)' }}>—— Resistance</span>}
-          </div>
-          <button className="wl-ta-close" onClick={onClose}><X size={16} /></button>
-        </div>
-
-        {/* chartRef measures the real pixel width via ResizeObserver */}
-        <div ref={chartRef} style={{ width: '100%', height: 260 }}>
-          <ComposedChart data={enriched} width={chartWidth} height={260} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
-                tickLine={false} axisLine={false} interval="preserveStartEnd" />
-              <YAxis domain={domain} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
-                tickLine={false} axisLine={false} tickFormatter={v => `$${v}`} width={52} />
-              <Tooltip
-                contentStyle={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: 8, fontSize: '0.78rem' }}
-                itemStyle={{ color: 'var(--text-primary)' }}
-                formatter={(v, name) => [fmt(v), name]}
-                labelStyle={{ color: 'var(--text-secondary)', marginBottom: 4 }}
-              />
-              {ma200val && domain[0] <= ma200val && ma200val <= domain[1] && (
-                <ReferenceLine y={+ma200val.toFixed(2)} stroke="#38bdf8" strokeDasharray="6 3" strokeWidth={2}
-                  label={{ value: `MA200W ${fmt(ma200val)}`, position: 'insideTopRight', fontSize: 10, fill: '#38bdf8' }} />
-              )}
-              {support && (
-                <ReferenceLine y={support} stroke="var(--success-color)" strokeDasharray="4 3" strokeWidth={1.5}
-                  label={{ value: `S ${fmt(support)}`, position: 'insideTopLeft', fontSize: 10, fill: 'var(--success-color)' }} />
-              )}
-              {resistance && (
-                <ReferenceLine y={resistance} stroke="var(--danger-color)" strokeDasharray="4 3" strokeWidth={1.5}
-                  label={{ value: `R ${fmt(resistance)}`, position: 'insideBottomLeft', fontSize: 10, fill: 'var(--danger-color)' }} />
-              )}
-              <Line type="monotone" dataKey="ma50" stroke="#ec4899" strokeWidth={1.5}
-                dot={false} isAnimationActive={false} connectNulls name="MA50" />
-              <Line type="monotone" dataKey="ma20" stroke="#f59e0b" strokeWidth={1.5}
-                dot={false} isAnimationActive={false} connectNulls name="MA20" />
-              <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2}
-                dot={false} isAnimationActive={false} name="Price" />
-            </ComposedChart>
-        </div>
+    <div className="wl-ta-wrap">
+      {/* Header: title + legend + close */}
+      <div className="wl-ta-header">
+        <span className="wl-ta-title">{symbol} — 6-Month Chart</span>
+        <button className="wl-ta-close" onClick={onClose}><X size={16} /></button>
       </div>
+
+      {/* Legend row — all lines shown as colored pills */}
+      <div className="wl-ta-legend">
+        {visibleLegend.map(l => (
+          <span key={l.key} className="wl-ta-leg-item" style={{ '--leg-color': l.color }}>
+            <span className="wl-ta-leg-dot" />
+            {l.label}
+          </span>
+        ))}
+      </div>
+
+      {/* Chart — overflow-x hidden prevents horizontal bleed on mobile */}
+      <div ref={chartRef} style={{ width: '100%', height: 260, overflow: 'hidden' }}>
+        <ComposedChart
+          data={enriched}
+          width={chartW}
+          height={260}
+          margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
+        >
+          <defs>
+            <linearGradient id={`wl-grad-${symbol}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}    />
+            </linearGradient>
+          </defs>
+
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
+            tickLine={false} axisLine={false}
+            interval={xInterval}
+          />
+          <YAxis
+            domain={domain}
+            tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
+            tickLine={false} axisLine={false}
+            tickFormatter={v => `$${v?.toFixed(0)}`}
+            width={48}
+          />
+          <Tooltip
+            contentStyle={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: 8, fontSize: '0.78rem' }}
+            itemStyle={{ color: 'var(--text-primary)' }}
+            formatter={(v, name) => [fmt(v), name]}
+            labelStyle={{ color: 'var(--text-secondary)', marginBottom: 4 }}
+          />
+
+          {/* Reference lines (drawn first so they sit behind data lines) */}
+          {hasMa200 && domain[0] <= ma200val && ma200val <= domain[1] && (
+            <ReferenceLine y={+ma200val.toFixed(2)} stroke="#38bdf8" strokeDasharray="6 3" strokeWidth={1.5}
+              label={{ value: 'MA200W', position: 'insideTopRight', fontSize: 9, fill: '#38bdf8' }} />
+          )}
+          {support != null && (
+            <ReferenceLine y={support} stroke="#22c55e" strokeDasharray="4 3" strokeWidth={1.5}
+              label={{ value: 'S', position: 'insideTopLeft', fontSize: 9, fill: '#22c55e' }} />
+          )}
+          {resistance != null && (
+            <ReferenceLine y={resistance} stroke="#ef4444" strokeDasharray="4 3" strokeWidth={1.5}
+              label={{ value: 'R', position: 'insideBottomLeft', fontSize: 9, fill: '#ef4444' }} />
+          )}
+
+          {/* MA lines (behind price) */}
+          {hasMa50 && (
+            <Line type="monotone" dataKey="ma50" stroke="#f59e0b" strokeWidth={1.5}
+              dot={false} isAnimationActive={false} connectNulls strokeDasharray="5 2" />
+          )}
+          <Line type="monotone" dataKey="ma20" stroke="#3b82f6" strokeWidth={1.5}
+            dot={false} isAnimationActive={false} connectNulls strokeDasharray="5 2" />
+
+          {/* Price area (on top) */}
+          <Area type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={2}
+            fill={`url(#wl-grad-${symbol})`} dot={false} isAnimationActive={false} activeDot={{ r: 3 }} />
+        </ComposedChart>
+      </div>
+    </div>
   );
 }
 
