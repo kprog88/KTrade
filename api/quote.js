@@ -2,10 +2,41 @@ import YahooFinance from 'yahoo-finance2';
 
 const _yf = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
 
+async function proxiedFetchJson(url) {
+  const proxies = [
+    `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+  ];
+  for (const pUrl of proxies) {
+    try {
+      const res = await fetch(pUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
+      if (res.ok) return await res.json();
+    } catch (e) { /* skip */ }
+  }
+  throw new Error('All proxy attempts failed');
+}
+
 export default async function handler(req, res) {
   try {
     const symbol = req.query.symbol;
-    const q = await _yf.quote(symbol);
+    let q;
+    
+    try {
+      q = await _yf.quote(symbol);
+    } catch (err) {
+      console.warn('yahoo-finance2 quote failed, trying proxy fallback...');
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+      const data = await proxiedFetchJson(url);
+      if (!data?.chart?.result?.[0]?.meta) throw new Error('No data via proxy');
+      const meta = data.chart.result[0].meta;
+      q = {
+        symbol: meta.symbol,
+        regularMarketPrice: meta.regularMarketPrice,
+        regularMarketChange: meta.regularMarketPrice - meta.chartPreviousClose,
+        regularMarketChangePercent: ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100,
+        currency: meta.currency
+      };
+    }
 
     const currency = q.currency || 'USD';
     let currencySymbol = '$';
@@ -23,9 +54,17 @@ export default async function handler(req, res) {
         if (currency === 'GBp') fxSym = 'GBPUSD=X';
         if (currency === 'ILA') fxSym = 'ILSUSD=X';
         
-        const fxQ = await _yf.quote(fxSym);
-        let divisor = (currency === 'GBp' || currency === 'ILA') ? 100 : 1;
-        exchangeRate = (fxQ.regularMarketPrice || 1) / divisor;
+        try {
+          const fxQ = await _yf.quote(fxSym);
+          let divisor = (currency === 'GBp' || currency === 'ILA') ? 100 : 1;
+          exchangeRate = (fxQ.regularMarketPrice || 1) / divisor;
+        } catch(e) {
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(fxSym)}?interval=1d&range=1d`;
+          const proxyData = await proxiedFetchJson(url);
+          const meta = proxyData.chart.result[0].meta;
+          let divisor = (currency === 'GBp' || currency === 'ILA') ? 100 : 1;
+          exchangeRate = (meta.regularMarketPrice || 1) / divisor;
+        }
       } catch (e) {
         console.warn('Failed to fetch exchange rate for', currency);
       }

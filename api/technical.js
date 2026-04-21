@@ -35,19 +35,29 @@ export default async function handler(req, res) {
     } catch (yf2Err) {
       console.warn('yahoo-finance2 failed, falling back to direct fetch:', yf2Err.message);
 
-      // Fallback: direct Yahoo Finance v8 API
-      const response = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept': 'application/json',
-            'Accept-Language': 'en-US,en;q=0.9',
-          }
-        }
-      );
+      // Fallback: direct Yahoo Finance v8 API bypassed through proxies
+      const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`;
+      
+      const proxies = [
+        `https://corsproxy.io/?url=${encodeURIComponent(yfUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`
+      ];
 
-      if (!response.ok) throw new Error(`Yahoo API returned ${response.status}`);
+      let response = null;
+      for (const pUrl of proxies) {
+        try {
+          const res = await fetch(pUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
+          if (res.ok) {
+            response = res;
+            break;
+          }
+        } catch (e) { /* skip to next proxy */ }
+      }
+      
+      if (!response) {
+        throw new Error('All attempts to bypass API blocks failed.');
+      }
+
       const data = await response.json();
       if (!data.chart?.result?.[0]) throw new Error('No chart data');
 

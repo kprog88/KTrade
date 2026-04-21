@@ -2,6 +2,20 @@ import YahooFinance from 'yahoo-finance2';
 
 const yf = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
 
+async function proxiedFetchJson(url) {
+  const proxies = [
+    `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+  ];
+  for (const pUrl of proxies) {
+    try {
+      const res = await fetch(pUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (res.ok) return await res.json();
+    } catch (e) { /* skip */ }
+  }
+  throw new Error('All proxy attempts failed');
+}
+
 export default async function handler(req, res) {
   try {
     const symbol = req.query.symbol;
@@ -31,8 +45,27 @@ export default async function handler(req, res) {
       interval = '1d';
     }
 
-    const result = await yf.chart(symbol, { period1, period2: now, interval });
-    const quotes = result.quotes || [];
+    let quotes;
+    try {
+      const result = await yf.chart(symbol, { period1, period2: now, interval });
+      quotes = result.quotes || [];
+    } catch(err) {
+      console.warn('yahoo-finance2 chart failed, trying proxy fallback...');
+      const rangeMap = { '1d': '1d', '7d': '7d', '1mo': '1mo', '3mo': '3mo', '6mo': '6mo', '5y': '5y' };
+      const range = rangeMap[period] || '7d';
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
+      const data = await proxiedFetchJson(url);
+      if (!data?.chart?.result?.[0]) throw new Error('No chart data via proxy');
+      
+      const r = data.chart.result[0];
+      const timestamps = r.timestamp || [];
+      const q = r.indicators.quote[0] || {};
+      
+      quotes = timestamps.map((t, i) => ({
+        date: new Date(t * 1000),
+        close: q.close?.[i] ?? null
+      }));
+    }
 
     const history = quotes
       .map(q => {
