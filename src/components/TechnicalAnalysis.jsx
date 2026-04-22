@@ -169,7 +169,7 @@ function buildSignals(ohlcv) {
 
 function buildPlainSummary(symbol, sigData, holding) {
   const { overall, signals, stats } = sigData;
-  const { lc, ls20, ls50, lr, lu, ll } = stats;
+  const { lc, ls20, ls50, ls120, lr, lu, ll } = stats;
   const sym  = holding?.currencySymbol || '$';
   const stop = (lc * 0.93).toFixed(2);
   const t1   = (lc * 1.07).toFixed(2);
