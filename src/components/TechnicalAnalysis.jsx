@@ -441,7 +441,7 @@ function StockCard({ holding, isActive, onSignalReady }) {
     const { computed, ...rest } = buildSignals(ohlcv);
     const { sma20, sma50, sma120, sma150, rsiVals, macdVals, bolVals } = computed;
     const cd = ohlcv.map((d, i) => ({
-      date:     d.date.slice(5),
+      date:     d.date,
       close:    d.close,
       open:     d.open,
       volume:   d.volume,
