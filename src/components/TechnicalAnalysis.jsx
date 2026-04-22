@@ -561,6 +561,9 @@ function StockCard({ holding, isActive, onSignalReady }) {
 
   const CHART_H = 240;
 
+  // Compute plain-English summary from signal data (null until data loads)
+  const plainSummary = sigData ? buildPlainSummary(holding.symbol, sigData, holding) : null;
+
   const badgeClass = type => ({
     buy:            'ta-badge buy',
     sell:           'ta-badge sell',
