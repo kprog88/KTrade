@@ -39,13 +39,15 @@ function App() {
   }
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', mobileLabel: 'Home',     icon: <LayoutDashboard size={20} /> },
-    { id: 'portfolio', label: 'Portfolio',  mobileLabel: 'Portfolio', icon: <Briefcase size={20} /> },
-    { id: 'insights',  label: 'Insights',   mobileLabel: 'Insights',  icon: <BrainCircuit size={20} /> },
-    { id: 'analysis',  label: 'Analysis',   mobileLabel: 'Analysis',  icon: <BarChart2 size={20} /> },
-    { id: 'watchlist', label: 'Watchlist',  mobileLabel: 'Watch',     icon: <Eye size={20} /> },
-    { id: 'learning',  label: 'Academy',    mobileLabel: 'Learn',     icon: <BookOpen size={20} /> },
+    { id: 'dashboard', label: 'Dashboard',  mobileLabel: 'Home',     icon: <LayoutDashboard size={18} />, title: 'Overview' },
+    { id: 'portfolio', label: 'Portfolio',  mobileLabel: 'Portfolio', icon: <Briefcase size={18} />,      title: 'Portfolio' },
+    { id: 'insights',  label: 'Insights',   mobileLabel: 'Insights',  icon: <BrainCircuit size={18} />,   title: 'AI Insights' },
+    { id: 'analysis',  label: 'Analysis',   mobileLabel: 'Analysis',  icon: <BarChart2 size={18} />,      title: 'Smart Analysis' },
+    { id: 'watchlist', label: 'Watchlist',  mobileLabel: 'Watch',     icon: <Eye size={18} />,            title: 'Watchlist' },
+    { id: 'learning',  label: 'Academy',    mobileLabel: 'Learn',     icon: <BookOpen size={18} />,       title: 'Academy' },
   ];
+
+  const currentNav = navItems.find(n => n.id === activeTab);
 
   return (
     <div className="app-container">
@@ -79,9 +81,9 @@ function App() {
       <main className="main-content" style={isMobile ? { paddingBottom: '80px', maxWidth: '100%', width: '100%', padding: '1rem', paddingBottom: '80px' } : {}}>
         <header className="header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {isMobile && <Activity size={22} color="var(--accent-color)" />}
-            <h1 style={isMobile ? { fontSize: '1.2rem' } : {}}>
-              {isMobile ? 'KTrade' : 'Overview'}
+            {isMobile && <Activity size={20} color="var(--indigo)" />}
+            <h1 style={isMobile ? { fontSize: '1.1rem' } : {}}>
+              {isMobile ? 'KTrade' : (currentNav?.title || 'Overview')}
             </h1>
           </div>
           <div className="header-user">

@@ -1,81 +1,68 @@
 import { useState, useEffect } from 'react'
 import { fetchQuote, fetchSearch, fetchExchangeRate } from '../data/api'
 import { usePortfolio } from '../context/PortfolioContext'
+import { Briefcase, TrendingUp, TrendingDown } from 'lucide-react'
 import './Portfolio.css'
 
+const CARD_ACCENTS = ['#6366f1','#8b5cf6','#22d3ee','#3b82f6','#f59e0b','#10b981','#ec4899','#f43f5e','#14b8a6'];
+
+const CURR_SYM = { USD:'$', EUR:'€', ILS:'₪', GBP:'£', CAD:'C$' };
+const fmt2 = n => n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+
 export default function Portfolio() {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-  
-  const [amount, setAmount] = useState('');
-  const [avgPrice, setAvgPrice] = useState('');
-  const [assetCurrency, setAssetCurrency] = useState('USD');
-  const [selectedStock, setSelectedStock] = useState(null);
+  const [showAddForm,    setShowAddForm]    = useState(false);
+  const [searchQuery,    setSearchQuery]    = useState('');
+  const [showDropdown,   setShowDropdown]   = useState(false);
+  const [amount,         setAmount]         = useState('');
+  const [avgPrice,       setAvgPrice]       = useState('');
+  const [assetCurrency,  setAssetCurrency]  = useState('USD');
+  const [selectedStock,  setSelectedStock]  = useState(null);
+  const [editingAsset,   setEditingAsset]   = useState(null);
+  const [searchResults,  setSearchResults]  = useState([]);
 
   const { holdings, setHoldings } = usePortfolio();
-  const [editingAsset, setEditingAsset] = useState(null);
-  const [searchResults, setSearchResults] = useState([]);
 
   useEffect(() => {
-    if (!searchQuery) {
-      setSearchResults([]);
-      return;
-    }
-    const delayDebounceFn = setTimeout(async () => {
-      const results = await fetchSearch(searchQuery);
-      setSearchResults(results);
+    if (!searchQuery) { setSearchResults([]); return; }
+    const t = setTimeout(async () => {
+      const r = await fetchSearch(searchQuery);
+      setSearchResults(r);
     }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
+    return () => clearTimeout(t);
   }, [searchQuery]);
 
-  const handleSaveAsset = async () => {
-    // Basic validation
-    if (!editingAsset && !selectedStock) return;
-    if (!amount || !avgPrice) return;
-    
-    // Check if we are editing
-    if (editingAsset) {
-      setHoldings(holdings.map(h => h.symbol === editingAsset ? {
-        ...h, amount: parseFloat(amount), avgPrice: parseFloat(avgPrice)
-      } : h));
-      setEditingAsset(null);
-    } else {
-      const actualSymbol = selectedStock.symbol.toUpperCase();
-      const quote = await fetchQuote(actualSymbol);
-      const currentPrice = quote ? quote.price : parseFloat(avgPrice); 
-      
-      const manualRate = await fetchExchangeRate(assetCurrency);
-      let currSym = '$';
-      if (assetCurrency === 'EUR') currSym = '€';
-      if (assetCurrency === 'ILS') currSym = '₪';
-      if (assetCurrency === 'GBP') currSym = '£';
-      if (assetCurrency === 'CAD') currSym = 'C$';
-      
-      setHoldings([...holdings, {
-        symbol: actualSymbol,
-        amount: parseFloat(amount),
-        avgPrice: parseFloat(avgPrice),
-        currentPrice: currentPrice,
-        currencySymbol: currSym,
-        exchangeRateToUSD: manualRate,
-        name: selectedStock.name
-      }]);
-    }
-    
-    setSearchQuery('');
-    setSelectedStock(null);
-    setAmount('');
-    setAvgPrice('');
-    setShowAddForm(false);
+  const resetForm = () => {
+    setSearchQuery(''); setSelectedStock(null);
+    setAmount(''); setAvgPrice('');
+    setEditingAsset(null); setShowAddForm(false);
   };
 
-  const handleRemove = (symbol) => {
-    setHoldings(holdings.filter(h => h.symbol !== symbol));
+  const handleSave = async () => {
+    if (!editingAsset && !selectedStock) return;
+    if (!amount || !avgPrice) return;
+
+    if (editingAsset) {
+      setHoldings(holdings.map(h => h.symbol === editingAsset
+        ? { ...h, amount: parseFloat(amount), avgPrice: parseFloat(avgPrice) }
+        : h));
+    } else {
+      const sym  = selectedStock.symbol.toUpperCase();
+      const q    = await fetchQuote(sym);
+      const rate = await fetchExchangeRate(assetCurrency);
+      setHoldings([...holdings, {
+        symbol: sym,
+        amount: parseFloat(amount),
+        avgPrice: parseFloat(avgPrice),
+        currentPrice: q ? q.price : parseFloat(avgPrice),
+        currencySymbol: CURR_SYM[assetCurrency] || '$',
+        exchangeRateToUSD: rate,
+        name: selectedStock.name,
+      }]);
+    }
+    resetForm();
   };
-  
-  const handleEdit = (asset) => {
+
+  const handleEdit = asset => {
     setSearchQuery(asset.symbol);
     setSelectedStock({ symbol: asset.symbol, name: asset.name });
     setAmount(asset.amount);
@@ -84,83 +71,65 @@ export default function Portfolio() {
     setShowAddForm(true);
   };
 
+  const handleRemove = sym => setHoldings(holdings.filter(h => h.symbol !== sym));
+
   return (
-    <div className="portfolio-container">
+    <div className="portfolio-page">
+
       <div className="portfolio-header">
-        <h2>Your Holdings</h2>
-        <button 
-          className="btn-primary"
-          onClick={() => setShowAddForm(!showAddForm)}
-        >
-          {showAddForm ? 'Cancel' : '+ Add Asset'}
+        <div>
+          <h2>Your Holdings</h2>
+          <p>{holdings.length} position{holdings.length !== 1 ? 's' : ''} tracked</p>
+        </div>
+        <button className="btn-primary" onClick={() => { resetForm(); setShowAddForm(s => !s); }}>
+          {showAddForm ? 'Cancel' : '+ Add Position'}
         </button>
       </div>
 
       {showAddForm && (
-        <div className="glass-panel add-asset-form" style={{ position: 'relative', zIndex: 1000, overflow: 'visible' }}>
-          <h3>Add New Asset</h3>
+        <div className="glass-panel add-asset-form" style={{ position:'relative', zIndex:1000, overflow:'visible' }}>
+          <h3 style={{ marginBottom:'0.25rem' }}>{editingAsset ? 'Edit Position' : 'Add New Position'}</h3>
           <div className="form-group-row">
-            <div className="form-group" style={{ position: 'relative' }}>
-              <label>Asset Symbol</label>
+
+            {/* Symbol search */}
+            <div className="form-group" style={{ position:'relative' }}>
+              <label>Symbol</label>
               {selectedStock ? (
-                <div 
-                  className="form-input" 
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.75rem', cursor: 'pointer', background: 'var(--panel-bg)' }} 
-                  onClick={() => setSelectedStock(null)}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <img 
-                      src={`https://financialmodelingprep.com/image-stock/${selectedStock.symbol.split('.')[0]}.png`} 
-                      alt={selectedStock.symbol} 
-                      style={{ width: '20px', height: '20px', borderRadius: '50%' }} 
-                      onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${selectedStock.symbol}&background=random` }} 
-                    />
+                <div className="form-input" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer' }}
+                  onClick={() => setSelectedStock(null)}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                    <img src={`https://financialmodelingprep.com/image-stock/${selectedStock.symbol.split('.')[0]}.png`}
+                      alt="" style={{ width:20, height:20, borderRadius:'50%' }}
+                      onError={e => { e.target.src=`https://ui-avatars.com/api/?name=${selectedStock.symbol}&background=random`; }} />
                     <strong>{selectedStock.symbol}</strong>
-                    <span className="text-secondary" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>{selectedStock.name}</span>
+                    <span style={{ fontSize:'0.78rem', color:'var(--text-2)', overflow:'hidden', textOverflow:'ellipsis', maxWidth:100 }}>{selectedStock.name}</span>
                   </div>
-                  <span style={{ color: 'var(--text-secondary)' }}>&times;</span>
+                  <span style={{ color:'var(--text-2)' }}>×</span>
                 </div>
               ) : (
                 <>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="Search symbol (e.g. AAPL)" 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                  <input type="text" className="form-input" placeholder="Search (e.g. AAPL)"
+                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                     onFocus={() => setShowDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                  />
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)} />
                   {showDropdown && searchQuery && (
-                    <div className="autocomplete-dropdown glass-panel" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, maxHeight: '250px', overflowY: 'auto', padding: '0.5rem', marginTop: '0.5rem', background: 'var(--bg-color)', border: '1px solid var(--accent-color)' }}>
-                      {searchResults.length > 0 ? searchResults.map(stock => (
-                        <div 
-                          key={stock.symbol}
-                          className="autocomplete-item"
-                          style={{ padding: '0.6rem', cursor: 'pointer', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.2s' }}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setSearchQuery(stock.symbol);
-                            setSelectedStock(stock);
-                            setShowDropdown(false);
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--panel-border)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <img 
-                              src={`https://financialmodelingprep.com/image-stock/${stock.symbol.split('.')[0]}.png`} 
-                              alt={stock.symbol} 
-                              style={{ width: '20px', height: '20px', borderRadius: '50%' }} 
-                              onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${stock.symbol}&background=random` }} 
-                            />
-                            <strong>{stock.symbol}</strong>
+                    <div className="autocomplete-dropdown glass-panel" style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:9999, maxHeight:240, overflowY:'auto', padding:'0.4rem', marginTop:'0.4rem' }}>
+                      {searchResults.length > 0 ? searchResults.map(s => (
+                        <div key={s.symbol} style={{ padding:'0.55rem 0.6rem', cursor:'pointer', borderRadius:6, display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.15s' }}
+                          onMouseDown={e => { e.preventDefault(); setSearchQuery(s.symbol); setSelectedStock(s); setShowDropdown(false); }}
+                          onMouseEnter={e => e.currentTarget.style.background='var(--panel-hover)'}
+                          onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                          <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                            <img src={`https://financialmodelingprep.com/image-stock/${s.symbol.split('.')[0]}.png`}
+                              alt="" style={{ width:18, height:18, borderRadius:'50%' }}
+                              onError={e => { e.target.src=`https://ui-avatars.com/api/?name=${s.symbol}&background=random`; }} />
+                            <strong style={{ fontSize:'0.875rem' }}>{s.symbol}</strong>
                           </div>
-                          <span className="text-secondary" style={{ fontSize: '0.85rem' }}>{stock.name}</span>
+                          <span style={{ fontSize:'0.78rem', color:'var(--text-2)' }}>{s.name}</span>
                         </div>
                       )) : (
-                        <div style={{ padding: '0.5rem', color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.875rem' }}>
-                          {searchQuery ? 'Loading...' : 'Type to search...'}
+                        <div style={{ padding:'0.6rem', color:'var(--text-2)', textAlign:'center', fontSize:'0.8rem' }}>
+                          {searchQuery ? 'Searching…' : 'Type to search'}
                         </div>
                       )}
                     </div>
@@ -168,9 +137,10 @@ export default function Portfolio() {
                 </>
               )}
             </div>
+
             <div className="form-group">
-              <label>Amount</label>
-              <input type="number" className="form-input" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} />
+              <label>Shares</label>
+              <input type="number" className="form-input" placeholder="0" value={amount} onChange={e => setAmount(e.target.value)} />
             </div>
             <div className="form-group">
               <label>Currency</label>
@@ -187,79 +157,106 @@ export default function Portfolio() {
               <input type="number" className="form-input" placeholder="0.00" value={avgPrice} onChange={e => setAvgPrice(e.target.value)} />
             </div>
             <div className="form-group flex-end">
-              <button 
-                className="btn-primary w-full" 
-                onClick={handleSaveAsset}
-                disabled={!selectedStock || !amount || !avgPrice}
-                style={{ opacity: (!selectedStock || !amount || !avgPrice) ? 0.5 : 1 }}
-              >
-                {editingAsset ? 'Update Asset' : 'Save Asset'}
+              <button className="btn-primary w-full" onClick={handleSave}
+                disabled={!editingAsset && (!selectedStock || !amount || !avgPrice)}
+                style={{ opacity:(!editingAsset && (!selectedStock || !amount || !avgPrice)) ? 0.45 : 1 }}>
+                {editingAsset ? 'Update' : 'Save Position'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="glass-panel table-container">
-        <table className="portfolio-table">
-          <thead>
-            <tr>
-              <th>Asset</th>
-              <th>Holding</th>
-              <th>Avg Price</th>
-              <th>Current Price</th>
-              <th>Total Value</th>
-              <th>P/L</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {holdings.map((asset, idx) => {
-              const stockName = asset.name || 'Unknown Asset';
-              const currentP = asset.currentPrice || asset.avgPrice; // fallback
-              const rate = asset.exchangeRateToUSD || 1;
-              const sym = asset.currencySymbol || '$';
-              
-              const totalValueUSD = asset.amount * currentP * rate;
-              const costBasisUSD = asset.amount * asset.avgPrice * rate;
-              const plUSD = totalValueUSD - costBasisUSD;
-              const isPositive = plUSD >= 0;
-              
-              return (
-                <tr key={`${asset.symbol}-${idx}`}>
-                  <td>
-                    <div className="asset-info">
-                      <div className="asset-icon" style={{ background: 'transparent', padding: 0, overflow: 'hidden' }}>
-                        <img 
-                          src={`https://financialmodelingprep.com/image-stock/${asset.symbol.split('.')[0]}.png`} 
-                          alt={asset.symbol}
-                          style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '50%' }}
-                          onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${asset.symbol}&background=random` }}
-                        />
-                      </div>
-                      <div>
-                        <strong>{asset.symbol}</strong>
-                        <div className="text-sm text-secondary">{stockName}</div>
-                      </div>
+      <div className="holdings-grid">
+        {holdings.length === 0 ? (
+          <div className="holdings-empty">
+            <Briefcase size={40} style={{ opacity:0.2 }} />
+            <p style={{ fontWeight:600 }}>No positions yet</p>
+            <p style={{ fontSize:'0.82rem', opacity:0.7 }}>Add your first stock above to start tracking your portfolio.</p>
+          </div>
+        ) : (
+          holdings.map((asset, idx) => {
+            const price   = asset.currentPrice || asset.avgPrice;
+            const rate    = asset.exchangeRateToUSD || 1;
+            const sym     = asset.currencySymbol || '$';
+            const value   = asset.amount * price * rate;
+            const cost    = asset.amount * asset.avgPrice * rate;
+            const pl      = value - cost;
+            const plPct   = cost > 0 ? (pl / cost) * 100 : 0;
+            const chgPct  = asset.avgPrice > 0 ? ((price - asset.avgPrice) / asset.avgPrice) * 100 : 0;
+            const isPos   = pl >= 0;
+            const accent  = CARD_ACCENTS[idx % CARD_ACCENTS.length];
+
+            return (
+              <div key={`${asset.symbol}-${idx}`} className="holding-card"
+                style={{ '--card-accent': accent, animationDelay:`${idx*0.05}s` }}>
+
+                <div className="hc-top">
+                  <div className="hc-identity">
+                    <img
+                      src={`https://financialmodelingprep.com/image-stock/${asset.symbol.split('.')[0]}.png`}
+                      alt={asset.symbol} className="hc-logo"
+                      onError={e => { e.target.src=`https://ui-avatars.com/api/?name=${asset.symbol}&background=6366f1&color=fff&bold=true`; }} />
+                    <div className="hc-names">
+                      <div className="hc-symbol">{asset.symbol}</div>
+                      <div className="hc-name">{asset.name || 'Unknown'}</div>
                     </div>
-                  </td>
-                  <td>{asset.amount.toFixed(2)}</td>
-                  <td>{sym}{asset.avgPrice.toFixed(2)}</td>
-                  <td>{asset.currentPrice > 0 ? `${sym}${asset.currentPrice.toFixed(2)}` : 'Loading...'}</td>
-                  <td>${totalValueUSD.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                  <td className={isPositive ? 'trend-positive' : 'trend-negative'}>
-                    {isPositive ? '+' : '-'}${Math.abs(plUSD).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                  </td>
-                  <td>
-                    <button style={{ color: 'var(--text-secondary)', marginRight: '0.5rem', background: 'transparent', padding: '0.2rem' }} onClick={() => handleEdit(asset)}>Edit</button>
-                    <button style={{ color: 'var(--danger-color)', background: 'transparent', padding: '0.2rem' }} onClick={() => handleRemove(asset.symbol)}>Remove</button>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                  </div>
+                  <div className="hc-price-block">
+                    <div className="hc-price">{sym}{price.toFixed(2)}</div>
+                    <div className={`hc-chg ${chgPct >= 0 ? 'pos':'neg'}`}>
+                      {chgPct >= 0 ? '▲' : '▼'} {Math.abs(chgPct).toFixed(2)}%
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hc-pnl-row">
+                  <div className="hc-metric">
+                    <div className="hc-metric-label">Market Value</div>
+                    <div className="hc-metric-val">${fmt2(value)}</div>
+                  </div>
+                  <div className="hc-metric">
+                    <div className="hc-metric-label">P / L</div>
+                    <div className={`hc-metric-val ${isPos?'pos':'neg'}`}>
+                      {isPos ? '+' : '-'}${fmt2(Math.abs(pl))}
+                    </div>
+                  </div>
+                  <div className="hc-metric">
+                    <div className="hc-metric-label">Shares</div>
+                    <div className="hc-metric-val">{asset.amount.toFixed(2)}</div>
+                  </div>
+                  <div className="hc-metric">
+                    <div className="hc-metric-label">Avg Cost</div>
+                    <div className="hc-metric-val">{sym}{asset.avgPrice.toFixed(2)}</div>
+                  </div>
+                </div>
+
+                <div className="hc-bar-wrap">
+                  <div className="hc-bar-label">
+                    <span>Return</span>
+                    <span style={{ color: isPos ? 'var(--up)':'var(--down)', fontWeight:700 }}>
+                      {isPos?'+':''}{plPct.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="hc-bar">
+                    <div className="hc-bar-fill"
+                      style={{ width:`${Math.min(Math.abs(plPct)/50*100,100)}%`, background: isPos ? 'var(--up)':'var(--down)' }} />
+                  </div>
+                </div>
+
+                <div className="hc-actions">
+                  <button className="hc-btn" onClick={() => handleEdit(asset)}>
+                    {isPos ? <TrendingUp size={12} style={{ marginRight:3 }} /> : <TrendingDown size={12} style={{ marginRight:3 }} />}
+                    Edit
+                  </button>
+                  <button className="hc-btn danger" onClick={() => handleRemove(asset.symbol)}>Remove</button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
+
     </div>
-  )
+  );
 }

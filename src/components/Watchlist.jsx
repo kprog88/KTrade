@@ -2,25 +2,23 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react
 import { fetchQuote, fetchChart, fetchSearch, fetchStockScore } from '../data/api'
 import {
   ComposedChart, Area, Line, ReferenceLine,
-  XAxis, YAxis, Tooltip,
-  LineChart
+  XAxis, YAxis, Tooltip, LineChart
 } from 'recharts'
 import { useAuth } from '../context/AuthContext'
 import { db } from '../firebase'
-import { X, ChevronDown } from 'lucide-react'
-import './Portfolio.css'
+import { Eye, X, ChevronDown } from 'lucide-react'
 import './Watchlist.css'
 
-// ── ResizeObserver width hook (shared by MiniChart and TAChart) ───────────────
+const CARD_ACCENTS = ['#6366f1','#8b5cf6','#22d3ee','#3b82f6','#f59e0b','#10b981','#ec4899','#f43f5e'];
+
+// ── Width hook ───────────────────────────────────────────────────────────────
 function useChartWidth() {
   const ref = useRef(null);
-  const [width, setWidth] = useState(0); // 0 = not yet measured; chart won't render
-
+  const [width, setWidth] = useState(0);
   const measure = useCallback(() => {
     if (!ref.current) return;
     const w = ref.current.getBoundingClientRect().width;
     if (w > 10) { setWidth(Math.floor(w)); return; }
-    // Walk up DOM for a sized ancestor
     let el = ref.current.parentElement;
     while (el) {
       const pw = el.getBoundingClientRect().width;
@@ -29,10 +27,7 @@ function useChartWidth() {
     }
     setWidth(Math.max(200, window.innerWidth - 80));
   }, []);
-
-  // Fires before first paint — gets correct width immediately
   useLayoutEffect(() => { measure(); }, [measure]);
-
   useEffect(() => {
     const t1 = setTimeout(measure, 60);
     const t2 = setTimeout(measure, 300);
@@ -41,45 +36,45 @@ function useChartWidth() {
     obs.observe(ref.current);
     return () => { obs.disconnect(); clearTimeout(t1); clearTimeout(t2); };
   }, [measure]);
-
   useEffect(() => {
     window.addEventListener('resize', measure, { passive: true });
     return () => window.removeEventListener('resize', measure);
   }, [measure]);
-
   return [ref, width];
 }
 
-// ── Indicators ──────────────────────────────────────────────────────────────
-
+// ── Indicator helpers ────────────────────────────────────────────────────────
 function sma(data, period) {
   return data.map((_, i) => {
     if (i < period - 1) return null;
-    const slice = data.slice(i - period + 1, i + 1);
-    return slice.reduce((s, d) => s + d.value, 0) / period;
+    return data.slice(i - period + 1, i + 1).reduce((s, d) => s + d.value, 0) / period;
   });
 }
 
 function supportResistance(data) {
   if (data.length < 5) return { support: null, resistance: null };
-  const values = data.map(d => d.value);
-  // Use lowest 10th-percentile as support, highest 90th as resistance
-  const sorted = [...values].sort((a, b) => a - b);
-  const support    = sorted[Math.floor(sorted.length * 0.1)];
-  const resistance = sorted[Math.floor(sorted.length * 0.9)];
-  return { support, resistance };
+  const sorted = [...data.map(d => d.value)].sort((a, b) => a - b);
+  return {
+    support:    sorted[Math.floor(sorted.length * 0.1)],
+    resistance: sorted[Math.floor(sorted.length * 0.9)],
+  };
 }
 
-// ── Mini chart inside each card ─────────────────────────────────────────────
+function ma200w(weekly) {
+  if (weekly.length < 200) return null;
+  return weekly.slice(-200).reduce((s, d) => s + d.value, 0) / 200;
+}
 
+// ── Mini sparkline ───────────────────────────────────────────────────────────
 function MiniChart({ chartData, isPositive }) {
   const [ref, width] = useChartWidth();
   return (
-    <div ref={ref} style={{ width: '100%', height: 80 }}>
+    <div ref={ref} style={{ width:'100%', height:64 }}>
       {width > 0 && (
-        <LineChart data={chartData} width={width} height={80}>
-          <YAxis domain={['auto', 'auto']} hide />
-          <Line type="monotone" dataKey="value" stroke={isPositive ? 'var(--success-color)' : 'var(--danger-color)'}
+        <LineChart data={chartData} width={width} height={64}>
+          <YAxis domain={['auto','auto']} hide />
+          <Line type="monotone" dataKey="value"
+            stroke={isPositive ? 'var(--up)' : 'var(--down)'}
             strokeWidth={2} dot={false} isAnimationActive={false} />
         </LineChart>
       )}
@@ -87,72 +82,57 @@ function MiniChart({ chartData, isPositive }) {
   );
 }
 
-// ── Indicators for TAChart ───────────────────────────────────────────────────
-
-function ma200w(weeklyData) {
-  if (weeklyData.length < 200) return null;
-  return weeklyData.slice(-200).reduce((s, d) => s + d.value, 0) / 200;
-}
-
 const LEGEND_ITEMS = [
-  { key: 'price',  label: 'Price',    color: '#8b5cf6' },
-  { key: 'ma20',   label: 'MA 20',    color: '#3b82f6' },
-  { key: 'ma50',   label: 'MA 50',    color: '#f59e0b' },
-  { key: 'ma200w', label: 'MA 200W',  color: '#38bdf8' },
-  { key: 'sup',    label: 'Support',  color: '#22c55e' },
-  { key: 'res',    label: 'Resist.',  color: '#ef4444' },
+  { key:'price', label:'Price',   color:'#8b5cf6' },
+  { key:'ma20',  label:'MA 20',   color:'#3b82f6' },
+  { key:'ma50',  label:'MA 50',   color:'#f59e0b' },
+  { key:'ma200w',label:'MA 200W', color:'#22d3ee' },
+  { key:'sup',   label:'Support', color:'#10b981' },
+  { key:'res',   label:'Resist.', color:'#f43f5e' },
 ];
 
 // ── Expanded TA chart ────────────────────────────────────────────────────────
-
 function TAChart({ symbol, onClose }) {
   const [chartData, setChartData] = useState([]);
-  const [ma200val, setMa200val]   = useState(null);
-  const [loading, setLoading]     = useState(true);
+  const [ma200val,  setMa200val]  = useState(null);
+  const [loading,   setLoading]   = useState(true);
   const [chartRef, chartWidth]    = useChartWidth();
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      fetchChart(symbol, '6mo'),   // ~125 trading days → enough for MA20 + MA50
-      fetchChart(symbol, '5y'),    // weekly → MA200W
-    ]).then(([sixmo, weekly]) => {
-      setChartData(sixmo || []);
-      setMa200val(ma200w(weekly || []));
-      setLoading(false);
-    });
+    Promise.all([fetchChart(symbol, '6mo'), fetchChart(symbol, '5y')])
+      .then(([sixmo, weekly]) => {
+        setChartData(sixmo || []);
+        setMa200val(ma200w(weekly || []));
+        setLoading(false);
+      });
   }, [symbol]);
 
-  if (loading) {
-    return (
-      <div className="wl-ta-wrap">
-        <div className="wl-ta-header">
-          <span className="wl-ta-title">{symbol} — Chart</span>
-          <button className="wl-ta-close" onClick={onClose}><X size={16} /></button>
-        </div>
-        <div className="wl-ta-loading">Loading chart…</div>
+  if (loading) return (
+    <div className="wl-ta-wrap">
+      <div className="wl-ta-header">
+        <span className="wl-ta-title">{symbol} — Chart</span>
+        <button className="wl-ta-close" onClick={onClose}><X size={15} /></button>
       </div>
-    );
-  }
+      <div className="wl-ta-loading">Loading chart…</div>
+    </div>
+  );
 
-  if (!chartData.length) {
-    return (
-      <div className="wl-ta-wrap">
-        <div className="wl-ta-header">
-          <span className="wl-ta-title">{symbol} — Chart</span>
-          <button className="wl-ta-close" onClick={onClose}><X size={16} /></button>
-        </div>
-        <div className="wl-ta-loading">No chart data available.</div>
+  if (!chartData.length) return (
+    <div className="wl-ta-wrap">
+      <div className="wl-ta-header">
+        <span className="wl-ta-title">{symbol} — Chart</span>
+        <button className="wl-ta-close" onClick={onClose}><X size={15} /></button>
       </div>
-    );
-  }
+      <div className="wl-ta-loading">No chart data available.</div>
+    </div>
+  );
 
   const ma20vals = sma(chartData, 20);
   const ma50vals = sma(chartData, 50);
   const { support, resistance } = supportResistance(chartData);
   const hasMa50  = ma50vals.some(v => v !== null);
   const hasMa200 = ma200val != null;
-
   const enriched = chartData.map((d, i) => ({
     ...d,
     ma20: ma20vals[i] != null ? +ma20vals[i].toFixed(2) : null,
@@ -160,132 +140,92 @@ function TAChart({ symbol, onClose }) {
   }));
 
   const prices = chartData.map(d => d.value);
-  const minP   = Math.min(...prices);
-  const maxP   = Math.max(...prices);
-  const pad    = (maxP - minP) * 0.08 || 1;
-  const domain = [+(minP - pad).toFixed(2), +(maxP + pad).toFixed(2)];
-
-  // Reduce X-axis ticks so labels don't overlap on mobile
-  const tickCount  = chartWidth < 400 ? 4 : 7;
-  const xInterval  = Math.max(1, Math.floor(chartData.length / tickCount));
-  const chartW     = Math.min(chartWidth, 1200);
-  const fmt        = v => `$${v?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const minP = Math.min(...prices), maxP = Math.max(...prices);
+  const pad  = (maxP - minP) * 0.08 || 1;
+  const domain   = [+(minP - pad).toFixed(2), +(maxP + pad).toFixed(2)];
+  const xInterval = Math.max(1, Math.floor(chartData.length / (chartWidth < 400 ? 4 : 7)));
+  const chartW    = Math.min(chartWidth, 1200);
+  const fmt       = v => `$${v?.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 
   const visibleLegend = LEGEND_ITEMS.filter(l => {
-    if (l.key === 'ma200w') return hasMa200;
-    if (l.key === 'sup')    return support != null;
-    if (l.key === 'res')    return resistance != null;
-    if (l.key === 'ma50')   return hasMa50;
+    if (l.key==='ma200w') return hasMa200;
+    if (l.key==='sup')    return support != null;
+    if (l.key==='res')    return resistance != null;
+    if (l.key==='ma50')   return hasMa50;
     return true;
   });
 
   return (
     <div className="wl-ta-wrap">
-      {/* Header: title + legend + close */}
       <div className="wl-ta-header">
         <span className="wl-ta-title">{symbol} — 6-Month Chart</span>
-        <button className="wl-ta-close" onClick={onClose}><X size={16} /></button>
+        <button className="wl-ta-close" onClick={onClose}><X size={15} /></button>
       </div>
-
-      {/* Legend row — all lines shown as colored pills */}
       <div className="wl-ta-legend">
         {visibleLegend.map(l => (
           <span key={l.key} className="wl-ta-leg-item" style={{ '--leg-color': l.color }}>
-            <span className="wl-ta-leg-dot" />
-            {l.label}
+            <span className="wl-ta-leg-dot" />{l.label}
           </span>
         ))}
       </div>
-
-      {/* Chart — overflow-x hidden prevents horizontal bleed on mobile */}
-      <div ref={chartRef} style={{ width: '100%', height: 260, overflow: 'hidden' }}>
-        {chartWidth > 0 && <ComposedChart
-          data={enriched}
-          width={chartW}
-          height={260}
-          margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
-        >
-          <defs>
-            <linearGradient id={`wl-grad-${symbol}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}    />
-            </linearGradient>
-          </defs>
-
-          <XAxis
-            dataKey="date"
-            tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
-            tickLine={false} axisLine={false}
-            interval={xInterval}
-          />
-          <YAxis
-            domain={domain}
-            tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
-            tickLine={false} axisLine={false}
-            tickFormatter={v => `$${v?.toFixed(0)}`}
-            width={48}
-          />
-          <Tooltip
-            contentStyle={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: 8, fontSize: '0.78rem' }}
-            itemStyle={{ color: 'var(--text-primary)' }}
-            formatter={(v, name) => [fmt(v), name]}
-            labelStyle={{ color: 'var(--text-secondary)', marginBottom: 4 }}
-          />
-
-          {/* Reference lines (drawn first so they sit behind data lines) */}
-          {hasMa200 && domain[0] <= ma200val && ma200val <= domain[1] && (
-            <ReferenceLine y={+ma200val.toFixed(2)} stroke="#38bdf8" strokeDasharray="6 3" strokeWidth={1.5}
-              label={{ value: 'MA200W', position: 'insideTopRight', fontSize: 9, fill: '#38bdf8' }} />
-          )}
-          {support != null && (
-            <ReferenceLine y={support} stroke="#22c55e" strokeDasharray="4 3" strokeWidth={1.5}
-              label={{ value: 'S', position: 'insideTopLeft', fontSize: 9, fill: '#22c55e' }} />
-          )}
-          {resistance != null && (
-            <ReferenceLine y={resistance} stroke="#ef4444" strokeDasharray="4 3" strokeWidth={1.5}
-              label={{ value: 'R', position: 'insideBottomLeft', fontSize: 9, fill: '#ef4444' }} />
-          )}
-
-          {/* MA lines (behind price) */}
-          {hasMa50 && (
-            <Line type="monotone" dataKey="ma50" stroke="#f59e0b" strokeWidth={1.5}
-              dot={false} isAnimationActive={false} connectNulls strokeDasharray="5 2" />
-          )}
-          <Line type="monotone" dataKey="ma20" stroke="#3b82f6" strokeWidth={1.5}
-            dot={false} isAnimationActive={false} connectNulls strokeDasharray="5 2" />
-
-          {/* Price area (on top) */}
-          <Area type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={2}
-            fill={`url(#wl-grad-${symbol})`} dot={false} isAnimationActive={false} activeDot={{ r: 3 }} />
-        </ComposedChart>}
+      <div ref={chartRef} style={{ width:'100%', height:260, overflow:'hidden' }}>
+        {chartWidth > 0 && (
+          <ComposedChart data={enriched} width={chartW} height={260} margin={{ top:8, right:4, bottom:0, left:0 }}>
+            <defs>
+              <linearGradient id={`wl-g-${symbol}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.22} />
+                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}    />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="date" tick={{ fontSize:10, fill:'var(--text-2)' }}
+              tickLine={false} axisLine={false} interval={xInterval} />
+            <YAxis domain={domain} tick={{ fontSize:10, fill:'var(--text-2)' }}
+              tickLine={false} axisLine={false}
+              tickFormatter={v => `$${v?.toFixed(0)}`} width={46} />
+            <Tooltip
+              contentStyle={{ background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:8, fontSize:'0.78rem' }}
+              itemStyle={{ color:'var(--text-1)' }}
+              formatter={(v, name) => [fmt(v), name]}
+              labelStyle={{ color:'var(--text-2)', marginBottom:4 }} />
+            {hasMa200 && domain[0] <= ma200val && ma200val <= domain[1] && (
+              <ReferenceLine y={+ma200val.toFixed(2)} stroke="#22d3ee" strokeDasharray="6 3" strokeWidth={1.5}
+                label={{ value:'MA200W', position:'insideTopRight', fontSize:9, fill:'#22d3ee' }} />
+            )}
+            {support != null && (
+              <ReferenceLine y={support} stroke="#10b981" strokeDasharray="4 3" strokeWidth={1.5}
+                label={{ value:'S', position:'insideTopLeft', fontSize:9, fill:'#10b981' }} />
+            )}
+            {resistance != null && (
+              <ReferenceLine y={resistance} stroke="#f43f5e" strokeDasharray="4 3" strokeWidth={1.5}
+                label={{ value:'R', position:'insideBottomLeft', fontSize:9, fill:'#f43f5e' }} />
+            )}
+            {hasMa50 && <Line type="monotone" dataKey="ma50" stroke="#f59e0b" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls strokeDasharray="5 2" />}
+            <Line type="monotone" dataKey="ma20" stroke="#3b82f6" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls strokeDasharray="5 2" />
+            <Area type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={2} fill={`url(#wl-g-${symbol})`} dot={false} isAnimationActive={false} activeDot={{ r:3 }} />
+          </ComposedChart>
+        )}
       </div>
     </div>
   );
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
-
+// ── Main ─────────────────────────────────────────────────────────────────────
 export default function Watchlist() {
-  const { currentUser } = useAuth();
-  const [searchQuery, setSearchQuery]   = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [selectedStock, setSelectedStock] = useState(null);
-  const [isTableView, setIsTableView]   = useState(false);
+  const { currentUser }  = useAuth();
+  const [searchQuery,    setSearchQuery]    = useState('');
+  const [showDropdown,   setShowDropdown]   = useState(false);
+  const [searchResults,  setSearchResults]  = useState([]);
+  const [selectedStock,  setSelectedStock]  = useState(null);
   const [expandedSymbol, setExpandedSymbol] = useState(null);
+  const [watchlist,      setWatchlist]      = useState([]);
+  const [loadedFromDB,   setLoadedFromDB]   = useState(false);
+  const [scoreMap,       setScoreMap]       = useState({});
 
   useEffect(() => {
     if (!searchQuery) { setSearchResults([]); return; }
-    const t = setTimeout(async () => {
-      const r = await fetchSearch(searchQuery);
-      setSearchResults(r);
-    }, 300);
+    const t = setTimeout(async () => { setSearchResults(await fetchSearch(searchQuery)); }, 300);
     return () => clearTimeout(t);
   }, [searchQuery]);
-
-  const [watchlist, setWatchlist]     = useState([]);
-  const [loadedFromDB, setLoadedFromDB] = useState(false);
-  const [scoreMap, setScoreMap]       = useState({});
 
   useEffect(() => {
     if (!currentUser) return;
@@ -294,8 +234,8 @@ export default function Watchlist() {
         setWatchlist(doc.data().watchlist);
       } else {
         setWatchlist([
-          { symbol: 'TSLA', price: 0, change: 0, changePercent: 0, chartData: [] },
-          { symbol: 'AMD',  price: 0, change: 0, changePercent: 0, chartData: [] },
+          { symbol:'TSLA', price:0, change:0, changePercent:0, chartData:[] },
+          { symbol:'AMD',  price:0, change:0, changePercent:0, chartData:[] },
         ]);
       }
       setLoadedFromDB(true);
@@ -304,48 +244,27 @@ export default function Watchlist() {
 
   useEffect(() => {
     if (!currentUser || !loadedFromDB) return;
-    const stripped = watchlist.map(w => ({ symbol: w.symbol, name: w.name || 'Unknown Asset' }));
-    db.collection('users').doc(currentUser.uid).set({ watchlist: stripped }, { merge: true });
+    db.collection('users').doc(currentUser.uid).set(
+      { watchlist: watchlist.map(w => ({ symbol:w.symbol, name:w.name||'Unknown' })) },
+      { merge: true }
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchlist.length, currentUser, loadedFromDB]);
 
   useEffect(() => {
     if (!loadedFromDB || watchlist.length === 0) return;
-    const needsLoad = watchlist.some(w => !w.price);
-    if (!needsLoad) return;
-    const load = async () => {
+    if (!watchlist.some(w => !w.price)) return;
+    (async () => {
       const updated = await Promise.all(watchlist.map(async item => {
         if (item.price > 0) return item;
-        const quote = await fetchQuote(item.symbol);
-        const chart = await fetchChart(item.symbol, '7d');
-        return quote ? { ...item, price: quote.price, change: quote.change, changePercent: quote.changePercent, chartData: chart, name: item.name || 'Unknown Asset', currencySymbol: quote.currencySymbol } : item;
+        const [q, chart] = await Promise.all([fetchQuote(item.symbol), fetchChart(item.symbol, '7d')]);
+        return q ? { ...item, price:q.price, change:q.change, changePercent:q.changePercent, chartData:chart, name:item.name||'Unknown', currencySymbol:q.currencySymbol } : item;
       }));
       setWatchlist(updated);
-    };
-    load();
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedFromDB, watchlist.length]);
 
-  const handleAddToWatchlist = async () => {
-    if (!selectedStock) return;
-    if (watchlist.find(i => i.symbol === selectedStock.symbol)) {
-      setSearchQuery(''); setSelectedStock(null); setShowDropdown(false); return;
-    }
-    const symbol = selectedStock.symbol.toUpperCase();
-    const newItem = { symbol, name: selectedStock.name, price: 0, change: 0, changePercent: 0, chartData: [] };
-    setWatchlist(prev => [...prev, newItem]);
-    setSearchQuery(''); setSelectedStock(null); setShowDropdown(false);
-    const quote = await fetchQuote(symbol);
-    const chart = await fetchChart(symbol, '7d');
-    if (quote) {
-      setWatchlist(prev => prev.map(item =>
-        item.symbol === symbol
-          ? { ...item, price: quote.price, change: quote.change, changePercent: quote.changePercent, chartData: chart, name: selectedStock.name, currencySymbol: quote.currencySymbol }
-          : item
-      ));
-    }
-  };
-
-  // Pre-fetch scores staggered so we don't hammer the API
   useEffect(() => {
     if (!loadedFromDB || watchlist.length === 0) return;
     const timers = watchlist.map((item, i) =>
@@ -359,154 +278,136 @@ export default function Watchlist() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedFromDB, watchlist.map(w => w.symbol).join(',')]);
 
-  const handleRemove  = symbol => setWatchlist(watchlist.filter(i => i.symbol !== symbol));
-  const handleCardClick = symbol => setExpandedSymbol(prev => prev === symbol ? null : symbol);
+  const handleAdd = async () => {
+    if (!selectedStock || watchlist.find(i => i.symbol === selectedStock.symbol)) {
+      setSearchQuery(''); setSelectedStock(null); return;
+    }
+    const sym = selectedStock.symbol.toUpperCase();
+    setWatchlist(prev => [...prev, { symbol:sym, name:selectedStock.name, price:0, change:0, changePercent:0, chartData:[] }]);
+    setSearchQuery(''); setSelectedStock(null); setShowDropdown(false);
+    const [q, chart] = await Promise.all([fetchQuote(sym), fetchChart(sym, '7d')]);
+    if (q) {
+      setWatchlist(prev => prev.map(item => item.symbol === sym
+        ? { ...item, price:q.price, change:q.change, changePercent:q.changePercent, chartData:chart, name:selectedStock.name, currencySymbol:q.currencySymbol }
+        : item));
+    }
+  };
 
   return (
-    <div className="portfolio-container">
-      {/* ── Header ── */}
-      <div className="portfolio-header" style={{ position: 'relative', zIndex: 1000, overflow: 'visible' }}>
-        <h2>Your Watchlist</h2>
-        <div style={{ display: 'flex', gap: '0.75rem', position: 'relative', alignItems: 'center', flexWrap: 'wrap' }}>
-          {selectedStock ? (
-            <div className="form-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.75rem', cursor: 'pointer', background: 'var(--panel-bg)', flex: '1 1 200px' }} onClick={() => setSelectedStock(null)}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <img src={`https://financialmodelingprep.com/image-stock/${selectedStock.symbol.split('.')[0]}.png`} alt={selectedStock.symbol} style={{ width: 20, height: 20, borderRadius: '50%' }} onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${selectedStock.symbol}&background=random`; }} />
-                <strong>{selectedStock.symbol}</strong>
-              </div>
-              <span style={{ color: 'var(--text-secondary)' }}>&times;</span>
-            </div>
-          ) : (
-            <input type="text" className="form-input" placeholder="Search symbol to watch…" value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onFocus={() => setShowDropdown(true)}
-              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-              style={{ flex: '1 1 200px' }}
-            />
-          )}
-
-          <button className="btn-primary" onClick={handleAddToWatchlist} disabled={!selectedStock} style={{ opacity: !selectedStock ? 0.5 : 1, whiteSpace: 'nowrap' }}>
-            + Add
-          </button>
-
-          {showDropdown && searchQuery && !selectedStock && (
-            <div className="autocomplete-dropdown glass-panel" style={{ position: 'absolute', top: '100%', left: 0, width: 250, zIndex: 9999, maxHeight: 200, overflowY: 'auto', padding: '0.5rem', marginTop: '0.5rem' }}>
-              {searchResults.length > 0 ? searchResults.map(stock => (
-                <div key={stock.symbol} className="autocomplete-item"
-                  style={{ padding: '0.6rem', cursor: 'pointer', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.2s' }}
-                  onMouseDown={e => { e.preventDefault(); setSearchQuery(stock.symbol); setSelectedStock(stock); setShowDropdown(false); }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--panel-border)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <img src={`https://financialmodelingprep.com/image-stock/${stock.symbol.split('.')[0]}.png`} alt={stock.symbol} style={{ width: 20, height: 20, borderRadius: '50%' }} onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${stock.symbol}&background=random`; }} />
-                    <strong>{stock.symbol}</strong>
-                  </div>
-                  <span className="text-secondary" style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{stock.name}</span>
-                </div>
-              )) : (
-                <div style={{ padding: '0.5rem', color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.875rem' }}>
-                  {searchQuery ? 'Loading…' : 'Type to search…'}
-                </div>
-              )}
-            </div>
-          )}
-
-          <button className="btn-primary" style={{ background: 'var(--panel-border)', whiteSpace: 'nowrap' }} onClick={() => setIsTableView(!isTableView)}>
-            {isTableView ? '⊞ Grid' : '☰ Table'}
-          </button>
+    <div className="wl-page">
+      <div className="wl-header">
+        <div>
+          <h2>Watchlist</h2>
+          <p>{watchlist.length} symbol{watchlist.length !== 1 ? 's' : ''} tracked</p>
         </div>
       </div>
 
-      {/* ── Table view ── */}
-      {isTableView ? (
-        <div className="glass-panel table-container" style={{ marginTop: '1rem' }}>
-          <table className="portfolio-table">
-            <thead>
-              <tr>
-                <th>Asset</th><th>Price</th><th>24h Change</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {watchlist.map((asset, i) => {
-                const pos = asset.change >= 0;
-                return (
-                  <tr key={`${asset.symbol}-${i}`}>
-                    <td>
-                      <div className="asset-info">
-                        <div className="asset-icon" style={{ background: 'transparent', padding: 0, overflow: 'hidden' }}>
-                          <img src={`https://financialmodelingprep.com/image-stock/${asset.symbol.split('.')[0]}.png`} alt={asset.symbol} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '50%' }} onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${asset.symbol}&background=random`; }} />
-                        </div>
-                        <div><strong>{asset.symbol}</strong><div className="text-sm text-secondary">{asset.name || 'Unknown Asset'}</div></div>
-                      </div>
-                    </td>
-                    <td>{asset.price > 0 ? `${asset.currencySymbol || '$'}${asset.price.toFixed(2)}` : 'Loading…'}</td>
-                    <td className={pos ? 'trend-positive' : 'trend-negative'}>
-                      {asset.price > 0 && <>{pos ? '+' : '-'}{asset.currencySymbol || '$'}{Math.abs(asset.change).toFixed(2)} ({pos ? '+' : ''}{asset.changePercent.toFixed(2)}%) {pos ? '▲' : '▼'}</>}
-                    </td>
-                    <td><button style={{ color: 'var(--danger-color)', background: 'transparent', padding: '0.2rem' }} onClick={() => handleRemove(asset.symbol)}>Remove</button></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {/* Add row */}
+      <div className="wl-add-row">
+        <div className="wl-search-wrap">
+          {selectedStock ? (
+            <div className="wl-input" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer' }}
+              onClick={() => setSelectedStock(null)}>
+              <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                <img src={`https://financialmodelingprep.com/image-stock/${selectedStock.symbol.split('.')[0]}.png`}
+                  alt="" style={{ width:18, height:18, borderRadius:'50%' }}
+                  onError={e => { e.target.src=`https://ui-avatars.com/api/?name=${selectedStock.symbol}&background=6366f1&color=fff`; }} />
+                <strong style={{ fontSize:'0.875rem' }}>{selectedStock.symbol}</strong>
+                <span style={{ fontSize:'0.78rem', color:'var(--text-2)' }}>{selectedStock.name}</span>
+              </div>
+              <span style={{ color:'var(--text-2)' }}>×</span>
+            </div>
+          ) : (
+            <input type="text" className="wl-input" placeholder="Search symbol to watch (e.g. NVDA)…"
+              value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 200)} />
+          )}
+          {showDropdown && searchQuery && !selectedStock && (
+            <div className="wl-dropdown">
+              {searchResults.length > 0 ? searchResults.map(s => (
+                <div key={s.symbol} className="wl-dropdown-item"
+                  onMouseDown={e => { e.preventDefault(); setSelectedStock(s); setSearchQuery(s.symbol); setShowDropdown(false); }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                    <img src={`https://financialmodelingprep.com/image-stock/${s.symbol.split('.')[0]}.png`}
+                      alt="" style={{ width:18, height:18, borderRadius:'50%' }}
+                      onError={e => { e.target.src=`https://ui-avatars.com/api/?name=${s.symbol}&background=random`; }} />
+                    <strong style={{ fontSize:'0.85rem' }}>{s.symbol}</strong>
+                  </div>
+                  <span style={{ fontSize:'0.78rem', color:'var(--text-2)', maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name}</span>
+                </div>
+              )) : <div className="wl-dropdown-empty">{searchQuery ? 'Searching…' : 'Type to search'}</div>}
+            </div>
+          )}
+        </div>
+        <button className="wl-add-btn" onClick={handleAdd} disabled={!selectedStock}>+ Add to Watchlist</button>
+      </div>
+
+      {/* Grid */}
+      {watchlist.length === 0 ? (
+        <div className="wl-empty">
+          <Eye size={40} style={{ opacity:0.2 }} />
+          <p style={{ fontWeight:600 }}>Your watchlist is empty</p>
+          <p style={{ fontSize:'0.82rem', opacity:0.7 }}>Search for a stock above to start tracking it.</p>
         </div>
       ) : (
-        /* ── Grid view ── */
-        <div className="wl-grid" style={{ marginTop: '1rem' }}>
+        <div className="wl-grid">
           {watchlist.map((asset, i) => {
             const pos      = asset.change >= 0;
             const expanded = expandedSymbol === asset.symbol;
+            const sc       = scoreMap[asset.symbol];
+            const accent   = CARD_ACCENTS[i % CARD_ACCENTS.length];
+            const sym      = asset.currencySymbol || '$';
+
             return (
-              <div key={`${asset.symbol}-${i}`} className={`glass-panel wl-card${expanded ? ' wl-card--expanded' : ''}`}>
-                {/* Remove button */}
-                <button className="wl-remove" onClick={e => { e.stopPropagation(); handleRemove(asset.symbol); }} title="Remove">
-                  <X size={14} />
+              <div key={`${asset.symbol}-${i}`} className="wl-card"
+                style={{ '--card-accent': accent, animationDelay:`${i*0.05}s` }}>
+
+                <button className="wl-remove" onClick={e => { e.stopPropagation(); setWatchlist(watchlist.filter(w => w.symbol !== asset.symbol)); }}>
+                  <X size={13} />
                 </button>
 
-                {/* Card header — click to expand */}
-                <div className="wl-card-top" onClick={() => handleCardClick(asset.symbol)}>
-                  <div className="asset-info" style={{ flex: 1 }}>
-                    <div className="asset-icon" style={{ background: 'transparent', padding: 0, overflow: 'hidden' }}>
-                      <img src={`https://financialmodelingprep.com/image-stock/${asset.symbol.split('.')[0]}.png`} alt={asset.symbol}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '50%' }}
-                        onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${asset.symbol}&background=random`; }} />
-                    </div>
-                    <div>
-                      <strong>{asset.symbol}</strong>
-                      <div className="text-sm text-secondary">{asset.name || 'Unknown Asset'}</div>
-                    </div>
+                <div className="wl-card-top" onClick={() => setExpandedSymbol(prev => prev === asset.symbol ? null : asset.symbol)}>
+                  <img src={`https://financialmodelingprep.com/image-stock/${asset.symbol.split('.')[0]}.png`}
+                    alt={asset.symbol} className="wl-card-logo"
+                    onError={e => { e.target.src=`https://ui-avatars.com/api/?name=${asset.symbol}&background=6366f1&color=fff&bold=true`; }} />
+                  <div className="wl-card-info">
+                    <div className="wl-card-sym">{asset.symbol}</div>
+                    <div className="wl-card-name">{asset.name || 'Unknown'}</div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem', marginRight: '1.5rem' }}>
-                    <strong>{asset.price > 0 ? `${asset.currencySymbol || '$'}${asset.price.toFixed(2)}` : 'Loading…'}</strong>
+                  <div className="wl-card-right">
+                    <div className="wl-card-price">{asset.price > 0 ? `${sym}${asset.price.toFixed(2)}` : '—'}</div>
                     {asset.price > 0 && (
-                      <div className={pos ? 'trend-positive' : 'trend-negative'} style={{ fontSize: '0.75rem' }}>
-                        {pos ? '+' : ''}{asset.changePercent.toFixed(2)}% {pos ? '▲' : '▼'}
-                      </div>
-                    )}
-                    {scoreMap[asset.symbol] && (
-                      <div className={`wl-score-badge ${scoreMap[asset.symbol].verdictType}`}>
-                        <span className="wl-score-num">{scoreMap[asset.symbol].score}</span>
-                        <span className="wl-score-label">{scoreMap[asset.symbol].verdict}</span>
+                      <div className={`wl-card-chg ${pos?'pos':'neg'}`}>
+                        {pos?'▲':'▼'} {Math.abs(asset.changePercent).toFixed(2)}%
                       </div>
                     )}
                   </div>
-                  <ChevronDown size={15} className={`wl-chevron${expanded ? ' open' : ''}`} />
                 </div>
 
-                {/* Mini sparkline (when collapsed) */}
-                {!expanded && (
-                  <div style={{ height: 70, marginTop: '0.5rem' }}>
-                    {asset.chartData?.length > 0
-                      ? <MiniChart chartData={asset.chartData} isPositive={pos} />
-                      : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Loading…</div>}
+                {sc && (
+                  <div className={`wl-score-badge ${sc.verdictType}`} style={{ display:'flex' }}>
+                    <span className="wl-score-num">{sc.score}</span>
+                    <span className="wl-score-label">{sc.verdict}</span>
                   </div>
                 )}
 
-                {/* Expanded TA chart */}
-                {expanded && (
-                  <TAChart symbol={asset.symbol} onClose={() => setExpandedSymbol(null)} />
+                {!expanded && asset.chartData?.length > 0 && (
+                  <div style={{ marginTop:'0.6rem' }}>
+                    <MiniChart chartData={asset.chartData} isPositive={pos} />
+                  </div>
                 )}
+
+                {!expanded && asset.price === 0 && (
+                  <div style={{ height:48, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-2)', fontSize:'0.8rem', marginTop:'0.5rem' }}>
+                    Loading…
+                  </div>
+                )}
+
+                <ChevronDown size={14} className={`wl-chevron${expanded?' open':''}`}
+                  onClick={() => setExpandedSymbol(prev => prev === asset.symbol ? null : asset.symbol)} />
+
+                {expanded && <TAChart symbol={asset.symbol} onClose={() => setExpandedSymbol(null)} />}
               </div>
             );
           })}
