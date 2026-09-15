@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
-import { createChart, ColorType } from 'lightweight-charts'
+import { createChart, ColorType, AreaSeries, LineSeries, HistogramSeries } from 'lightweight-charts'
 import { TrendingUp, BarChart2, Activity, Building2, UserCheck, AlertTriangle, ChevronDown, Sparkles } from 'lucide-react'
 import { usePortfolio } from '../context/PortfolioContext'
 import { fetchTechnical, fetchInstitutional, fetchStockScore } from '../data/api'
@@ -455,24 +455,24 @@ function StockChart({ chartData, isActive, chartWidth, activeTab, visibleMAs }) 
     });
 
     if (activeTab === 'Price & MAs') {
-      chart.addAreaSeries({ lineColor:'#6366f1', topColor:'rgba(99,102,241,0.25)', bottomColor:'rgba(99,102,241,0)', lineWidth:2 })
+      chart.addSeries(AreaSeries, { lineColor:'#6366f1', topColor:'rgba(99,102,241,0.25)', bottomColor:'rgba(99,102,241,0)', lineWidth:2 })
         .setData(sorted.map(d => ({ time: d.date, value: d.close })));
-      if (visibleMAs.ma20)  chart.addLineSeries({ color:'#3b82f6', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.sma20).map(d=>({time:d.date,value:d.sma20})));
-      if (visibleMAs.ma50)  chart.addLineSeries({ color:'#f59e0b', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.sma50).map(d=>({time:d.date,value:d.sma50})));
-      if (visibleMAs.ma120) chart.addLineSeries({ color:'#10b981', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.sma120).map(d=>({time:d.date,value:d.sma120})));
-      if (visibleMAs.ma150) chart.addLineSeries({ color:'#ec4899', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.sma150).map(d=>({time:d.date,value:d.sma150})));
-      chart.addLineSeries({ color:'rgba(148,163,184,0.35)', lineWidth:1, lineStyle:3 }).setData(sorted.filter(d=>d.bolUpper).map(d=>({time:d.date,value:d.bolUpper})));
-      chart.addLineSeries({ color:'rgba(148,163,184,0.35)', lineWidth:1, lineStyle:3 }).setData(sorted.filter(d=>d.bolLower).map(d=>({time:d.date,value:d.bolLower})));
+      if (visibleMAs.ma20)  chart.addSeries(LineSeries, { color:'#3b82f6', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.sma20).map(d=>({time:d.date,value:d.sma20})));
+      if (visibleMAs.ma50)  chart.addSeries(LineSeries, { color:'#f59e0b', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.sma50).map(d=>({time:d.date,value:d.sma50})));
+      if (visibleMAs.ma120) chart.addSeries(LineSeries, { color:'#10b981', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.sma120).map(d=>({time:d.date,value:d.sma120})));
+      if (visibleMAs.ma150) chart.addSeries(LineSeries, { color:'#ec4899', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.sma150).map(d=>({time:d.date,value:d.sma150})));
+      chart.addSeries(LineSeries, { color:'rgba(148,163,184,0.35)', lineWidth:1, lineStyle:3 }).setData(sorted.filter(d=>d.bolUpper).map(d=>({time:d.date,value:d.bolUpper})));
+      chart.addSeries(LineSeries, { color:'rgba(148,163,184,0.35)', lineWidth:1, lineStyle:3 }).setData(sorted.filter(d=>d.bolLower).map(d=>({time:d.date,value:d.bolLower})));
     } else if (activeTab === 'RSI') {
-      chart.addLineSeries({ color:'#818cf8', lineWidth:2 }).setData(sorted.filter(d=>d.rsi).map(d=>({time:d.date,value:d.rsi})));
-      chart.addLineSeries({ color:'#ef4444', lineWidth:1, lineStyle:2 }).setData(sorted.map(d=>({time:d.date,value:70})));
-      chart.addLineSeries({ color:'#22c55e', lineWidth:1, lineStyle:2 }).setData(sorted.map(d=>({time:d.date,value:30})));
+      chart.addSeries(LineSeries, { color:'#818cf8', lineWidth:2 }).setData(sorted.filter(d=>d.rsi).map(d=>({time:d.date,value:d.rsi})));
+      chart.addSeries(LineSeries, { color:'#ef4444', lineWidth:1, lineStyle:2 }).setData(sorted.map(d=>({time:d.date,value:70})));
+      chart.addSeries(LineSeries, { color:'#22c55e', lineWidth:1, lineStyle:2 }).setData(sorted.map(d=>({time:d.date,value:30})));
     } else if (activeTab === 'MACD') {
-      chart.addLineSeries({ color:'#3b82f6', lineWidth:2 }).setData(sorted.filter(d=>d.macd).map(d=>({time:d.date,value:d.macd})));
-      chart.addLineSeries({ color:'#f59e0b', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.signal).map(d=>({time:d.date,value:d.signal})));
-      chart.addHistogramSeries({}).setData(sorted.filter(d=>d.hist).map(d=>({time:d.date,value:d.hist,color:d.hist>=0?'#22c55e':'#ef4444'})));
+      chart.addSeries(LineSeries, { color:'#3b82f6', lineWidth:2 }).setData(sorted.filter(d=>d.macd).map(d=>({time:d.date,value:d.macd})));
+      chart.addSeries(LineSeries, { color:'#f59e0b', lineWidth:1.5, lineStyle:2 }).setData(sorted.filter(d=>d.signal).map(d=>({time:d.date,value:d.signal})));
+      chart.addSeries(HistogramSeries, {}).setData(sorted.filter(d=>d.hist).map(d=>({time:d.date,value:d.hist,color:d.hist>=0?'#22c55e':'#ef4444'})));
     } else if (activeTab === 'Volume') {
-      chart.addHistogramSeries({ priceFormat:{type:'volume'} })
+      chart.addSeries(HistogramSeries, { priceFormat:{type:'volume'} })
         .setData(sorted.map(d=>({time:d.date,value:d.volume,color:d.close>=d.open?'rgba(34,197,94,0.6)':'rgba(239,68,68,0.6)'})));
     }
 
@@ -520,7 +520,7 @@ function StockCard({ holding, isActive, onSignalReady }) {
     const { computed, ...rest } = buildSignals(ohlcv);
     const { sma20, sma50, sma120, sma150, rsiV, macdV, bolV } = computed;
     const cd = ohlcv.map((d, i) => ({
-      date: d.date.slice(5), close: d.close, open: d.open, volume: d.volume,
+      date: d.date, close: d.close, open: d.open, volume: d.volume,
       sma20: sma20[i], sma50: sma50[i], sma120: sma120[i], sma150: sma150[i],
       rsi:   rsiV[i],  macd: macdV.line[i], signal: macdV.sig[i], hist: macdV.hist[i],
       bolUpper: bolV.upper[i], bolLower: bolV.lower[i],
