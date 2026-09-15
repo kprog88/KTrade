@@ -122,3 +122,14 @@ export const fetchExchangeRate = async (currency) => {
     return 1;
   }
 };
+
+export const fetchStockScore = async (symbol) => {
+  try {
+    const res = await fetch(`/api/stock-score?symbol=${encodeURIComponent(symbol)}`);
+    if (!res.ok) throw new Error('Failed');
+    return await res.json();
+  } catch (error) {
+    console.error(`Stock score error for ${symbol}:`, error);
+    return null;
+  }
+};
