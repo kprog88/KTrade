@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createChart, ColorType, AreaSeries, LineSeries, HistogramSeries } from 'lightweight-charts'
 import { TrendingUp, BarChart2, Activity, Building2, UserCheck, AlertTriangle, ChevronDown, Sparkles } from 'lucide-react'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -377,48 +377,6 @@ function ScoreHero({ scoreData }) {
   );
 }
 
-// ─── CHART WIDTH HOOK ─────────────────────────────────────────────────────────
-
-function useChartWidth(isActive) {
-  const ref = useRef(null);
-  const [width, setWidth] = useState(0);
-
-  const measure = useCallback(() => {
-    if (!ref.current) return;
-    const w = ref.current.getBoundingClientRect().width;
-    if (w > 10) { setWidth(Math.floor(w)); return; }
-    let el = ref.current.parentElement;
-    while (el) {
-      const pw = el.getBoundingClientRect().width;
-      if (pw > 10) { setWidth(Math.floor(pw - 24)); return; }
-      el = el.parentElement;
-    }
-    setWidth(Math.max(200, window.innerWidth - 80));
-  }, []);
-
-  useLayoutEffect(() => { measure(); }, [measure]);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const obs = new ResizeObserver(measure);
-    obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, [measure]);
-
-  useEffect(() => {
-    if (!isActive) return;
-    const ts = [setTimeout(measure, 30), setTimeout(measure, 200), setTimeout(measure, 450)];
-    return () => ts.forEach(clearTimeout);
-  }, [isActive, measure]);
-
-  useEffect(() => {
-    window.addEventListener('resize', measure, { passive: true });
-    return () => window.removeEventListener('resize', measure);
-  }, [measure]);
-
-  return [ref, width];
-}
-
 // ─── CHART ───────────────────────────────────────────────────────────────────
 
 const CHART_TABS = ['Price & MAs', 'RSI', 'MACD', 'Volume'];
@@ -428,17 +386,18 @@ const MA_OPTIONS = [
   { key:'ma120', label:'MA 120', dataKey:'sma120', color:'#10b981' },
   { key:'ma150', label:'MA 150', dataKey:'sma150', color:'#ec4899' },
 ];
-const CHART_H = 240;
+const CHART_H = 300;
 
-function StockChart({ chartData, isActive, chartWidth, activeTab, visibleMAs }) {
+function StockChart({ chartData, activeTab, visibleMAs }) {
   const chartRef = useRef(null);
 
   useEffect(() => {
     if (!chartRef.current || chartData.length === 0) return;
-    const w = Math.max(200, Math.min(chartWidth - 2, 1200));
     const sorted = [...chartData].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const chart = createChart(chartRef.current, {
+      autoSize: true,
+      height: CHART_H,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#8b95a8',
@@ -447,8 +406,6 @@ function StockChart({ chartData, isActive, chartWidth, activeTab, visibleMAs }) 
         vertLines: { color: 'rgba(255,255,255,0.04)' },
         horzLines: { color: 'rgba(255,255,255,0.04)' },
       },
-      width: w,
-      height: CHART_H,
       rightPriceScale: { borderColor: 'rgba(255,255,255,0.08)' },
       timeScale: { borderColor: 'rgba(255,255,255,0.08)', timeVisible: false },
       crosshair: { horzLine: { color: 'rgba(255,255,255,0.2)' }, vertLine: { color: 'rgba(255,255,255,0.2)' } },
@@ -478,7 +435,7 @@ function StockChart({ chartData, isActive, chartWidth, activeTab, visibleMAs }) 
 
     chart.timeScale().fitContent();
     return () => { chart.remove(); };
-  }, [chartData, activeTab, chartWidth, visibleMAs]);
+  }, [chartData, activeTab, visibleMAs]);
 
   return <div ref={chartRef} className="ta-chart-area" style={{ width:'100%', height: CHART_H + 30, position:'relative' }} />;
 }
@@ -496,7 +453,6 @@ function StockCard({ holding, isActive, onSignalReady }) {
   const [instError,   setInstError]   = useState(null);
   const [scoreData,   setScoreData]   = useState(null);
   const hasFetched = useRef(false);
-  const [chartContRef, chartWidth] = useChartWidth(isActive);
 
   useEffect(() => {
     if (!isActive || hasFetched.current) return;
@@ -586,10 +542,7 @@ function StockCard({ holding, isActive, onSignalReady }) {
           )}
 
           {/* ── Chart ── */}
-          <div ref={chartContRef} style={{ width:'100%' }}>
-            <StockChart chartData={chartData} isActive={isActive} chartWidth={chartWidth}
-              activeTab={activeTab} visibleMAs={visibleMAs} />
-          </div>
+          <StockChart chartData={chartData} activeTab={activeTab} visibleMAs={visibleMAs} />
 
           {/* ── Signal Badges ── */}
           {sigData && (

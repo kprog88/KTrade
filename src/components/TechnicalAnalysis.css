@@ -190,9 +190,9 @@
 
 .ta-chart-area {
   margin-bottom: 1.25rem;
-  overflow-x: hidden; /* prevent horizontal bleed */
-  overflow-y: visible; /* allow tooltip/legend to render above/below */
-  min-height: 240px;
+  width: 100%;
+  height: 330px;
+  position: relative;
 }
 
 /* ─── SIGNAL BADGES ───────────────────────────────────────────────────────── */
