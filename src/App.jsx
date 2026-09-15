@@ -52,12 +52,12 @@ function App() {
       {/* Desktop sidebar — hidden on mobile */}
       {!isMobile && (
         <aside className="sidebar">
-          <div className="logo" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-               <Activity size={28} color="var(--accent-color)" />
-               <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>KTrade</span>
+          <div className="logo">
+            <div className="logo-row">
+              <Activity size={26} color="var(--accent-color)" />
+              <span className="logo-name">KTrade</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: '400', letterSpacing: '0.05em', marginLeft: '2.25rem' }}>your ai trading assistant</div>
+            <div className="logo-tagline">your ai trading assistant</div>
           </div>
           <nav className="nav-links">
             {navItems.map(item => (

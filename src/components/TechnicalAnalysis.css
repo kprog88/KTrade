@@ -672,6 +672,183 @@
   text-align: center;
 }
 
+/* ─── SCORE HERO ──────────────────────────────────────────────────────────── */
+
+.ta-score-hero {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(99,102,241,0.02) 100%);
+  border: 1px solid rgba(99,102,241,0.18);
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.25rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.ta-score-hero.loading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  background: rgba(99,102,241,0.04);
+  border: 1px solid rgba(99,102,241,0.12);
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.25rem;
+}
+
+.ta-score-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  min-width: 160px;
+}
+
+.ta-score-right {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Verdict badge */
+.ta-verdict-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ta-verdict-badge.strong-buy  { background: rgba(34,197,94,0.18);   color: #22c55e; border: 1px solid rgba(34,197,94,0.35);   }
+.ta-verdict-badge.buy         { background: rgba(74,222,128,0.14);  color: #4ade80; border: 1px solid rgba(74,222,128,0.28);  }
+.ta-verdict-badge.hold        { background: rgba(245,158,11,0.14);  color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);   }
+.ta-verdict-badge.sell        { background: rgba(248,113,113,0.14); color: #f87171; border: 1px solid rgba(248,113,113,0.28); }
+.ta-verdict-badge.strong-sell { background: rgba(239,68,68,0.18);   color: #ef4444; border: 1px solid rgba(239,68,68,0.35);   }
+
+.ta-verdict-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.4;
+  max-width: 160px;
+}
+
+/* Pillars grid */
+.ta-pillars-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.ta-pillar {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: border-color 0.2s;
+}
+
+.ta-pillar:hover { border-color: rgba(99,102,241,0.3); }
+
+.ta-pillar-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ta-pillar-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.ta-pillar-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex: 1;
+  min-width: 0;
+}
+
+.ta-pillar-score {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.ta-pillar-bar-track {
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+[data-theme='light'] .ta-pillar-bar-track {
+  background: rgba(0,0,0,0.07);
+}
+
+.ta-pillar-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ta-pillar-detail {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── ACCORDION SCORE BADGE ───────────────────────────────────────────────── */
+
+.ta-score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.ta-score-badge-num {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.ta-score-badge-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+}
+
+.ta-score-badge.strong-buy  { background: rgba(34,197,94,0.16);   color: #22c55e; border: 1px solid rgba(34,197,94,0.3);   }
+.ta-score-badge.buy         { background: rgba(74,222,128,0.12);  color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
+.ta-score-badge.hold        { background: rgba(245,158,11,0.12);  color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
+.ta-score-badge.sell        { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.22);}
+.ta-score-badge.strong-sell { background: rgba(239,68,68,0.16);   color: #ef4444; border: 1px solid rgba(239,68,68,0.3);   }
+
 /* ─── LIGHT THEME OVERRIDES ───────────────────────────────────────────────── */
 
 [data-theme='light'] .ta-suggestion {
@@ -707,6 +884,31 @@
   .ta-insider-row     { flex-direction: column; align-items: flex-start; }
   .ta-plain-summary   { padding: 1rem; }
   .ta-plain-headline p { font-size: 0.88rem; }
+
+  /* Score hero stacks vertically on mobile */
+  .ta-score-hero {
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1rem;
+  }
+
+  .ta-score-left {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+    min-width: unset;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ta-pillars-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .ta-pillar { padding: 0.6rem 0.75rem; }
+
+  .ta-verdict-desc { max-width: 100%; text-align: left; }
 
   /* Chart container: fill width, allow recharts to paint correctly */
   .ta-chart-area {

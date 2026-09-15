@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
-import { fetchQuote, fetchChart, fetchSearch } from '../data/api'
+import { fetchQuote, fetchChart, fetchSearch, fetchStockScore } from '../data/api'
 import {
   ComposedChart, Area, Line, ReferenceLine,
   XAxis, YAxis, Tooltip,
@@ -285,6 +285,7 @@ export default function Watchlist() {
 
   const [watchlist, setWatchlist]     = useState([]);
   const [loadedFromDB, setLoadedFromDB] = useState(false);
+  const [scoreMap, setScoreMap]       = useState({});
 
   useEffect(() => {
     if (!currentUser) return;
@@ -343,6 +344,20 @@ export default function Watchlist() {
       ));
     }
   };
+
+  // Pre-fetch scores staggered so we don't hammer the API
+  useEffect(() => {
+    if (!loadedFromDB || watchlist.length === 0) return;
+    const timers = watchlist.map((item, i) =>
+      setTimeout(() => {
+        fetchStockScore(item.symbol).then(d => {
+          if (d) setScoreMap(prev => ({ ...prev, [item.symbol]: d }));
+        });
+      }, i * 400)
+    );
+    return () => timers.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadedFromDB, watchlist.map(w => w.symbol).join(',')]);
 
   const handleRemove  = symbol => setWatchlist(watchlist.filter(i => i.symbol !== symbol));
   const handleCardClick = symbol => setExpandedSymbol(prev => prev === symbol ? null : symbol);
@@ -462,11 +477,17 @@ export default function Watchlist() {
                       <div className="text-sm text-secondary">{asset.name || 'Unknown Asset'}</div>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', marginRight: '1.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem', marginRight: '1.5rem' }}>
                     <strong>{asset.price > 0 ? `${asset.currencySymbol || '$'}${asset.price.toFixed(2)}` : 'Loading…'}</strong>
                     {asset.price > 0 && (
                       <div className={pos ? 'trend-positive' : 'trend-negative'} style={{ fontSize: '0.75rem' }}>
                         {pos ? '+' : ''}{asset.changePercent.toFixed(2)}% {pos ? '▲' : '▼'}
+                      </div>
+                    )}
+                    {scoreMap[asset.symbol] && (
+                      <div className={`wl-score-badge ${scoreMap[asset.symbol].verdictType}`}>
+                        <span className="wl-score-num">{scoreMap[asset.symbol].score}</span>
+                        <span className="wl-score-label">{scoreMap[asset.symbol].verdict}</span>
                       </div>
                     )}
                   </div>
