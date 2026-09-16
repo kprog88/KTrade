@@ -131,7 +131,7 @@ function App() {
         ) : (
           <PortfolioProvider>
             {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} mobile={isMobile} />}
-            {activeTab === 'portfolio' && <Portfolio />}
+            {activeTab === 'portfolio' && <Portfolio isMobile={isMobile} />}
             {activeTab === 'insights'  && <Insights />}
             {activeTab === 'analysis'  && <TechnicalAnalysis />}
             {activeTab === 'watchlist' && <Watchlist />}

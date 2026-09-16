@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { fetchQuote, fetchSearch, fetchExchangeRate } from '../data/api'
 import { usePortfolio } from '../context/PortfolioContext'
-import { Briefcase, TrendingUp, TrendingDown } from 'lucide-react'
+import { Briefcase, TrendingUp, TrendingDown, ScanLine } from 'lucide-react'
+import PortfolioScanner from './PortfolioScanner'
 import './Portfolio.css'
 
 const CARD_ACCENTS = ['#6366f1','#8b5cf6','#22d3ee','#3b82f6','#f59e0b','#10b981','#ec4899','#f43f5e','#14b8a6'];
@@ -9,8 +10,9 @@ const CARD_ACCENTS = ['#6366f1','#8b5cf6','#22d3ee','#3b82f6','#f59e0b','#10b981
 const CURR_SYM = { USD:'$', EUR:'€', ILS:'₪', GBP:'£', CAD:'C$' };
 const fmt2 = n => n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 
-export default function Portfolio() {
+export default function Portfolio({ isMobile }) {
   const [showAddForm,    setShowAddForm]    = useState(false);
+  const [showScanner,    setShowScanner]    = useState(false);
   const [searchQuery,    setSearchQuery]    = useState('');
   const [showDropdown,   setShowDropdown]   = useState(false);
   const [amount,         setAmount]         = useState('');
@@ -21,6 +23,28 @@ export default function Portfolio() {
   const [searchResults,  setSearchResults]  = useState([]);
 
   const { holdings, setHoldings } = usePortfolio();
+
+  // Merge scanned holdings into existing portfolio
+  const handleScanImport = async (scanned) => {
+    const updated = [...holdings];
+    for (const item of scanned) {
+      const idx = updated.findIndex(h => h.symbol === item.symbol);
+      // Try to fetch a live quote so currentPrice is populated right away
+      const q = await fetchQuote(item.symbol).catch(() => null);
+      const entry = {
+        symbol:       item.symbol,
+        name:         item.name || item.symbol,
+        amount:       item.amount,
+        avgPrice:     item.avgPrice || (q ? q.price : 0),
+        currentPrice: q ? q.price : (item.currentPrice || item.avgPrice || 0),
+        currencySymbol: q?.currencySymbol || '$',
+        exchangeRateToUSD: 1,
+      };
+      if (idx >= 0) updated[idx] = entry;
+      else updated.push(entry);
+    }
+    setHoldings(updated);
+  };
 
   useEffect(() => {
     if (!searchQuery) { setSearchResults([]); return; }
@@ -76,14 +100,42 @@ export default function Portfolio() {
   return (
     <div className="portfolio-page">
 
+      {showScanner && (
+        <PortfolioScanner
+          isMobile={isMobile}
+          onClose={() => setShowScanner(false)}
+          onImport={handleScanImport}
+        />
+      )}
+
       <div className="portfolio-header">
         <div>
           <h2>Your Holdings</h2>
           <p>{holdings.length} position{holdings.length !== 1 ? 's' : ''} tracked</p>
         </div>
-        <button className="btn-primary" onClick={() => { resetForm(); setShowAddForm(s => !s); }}>
-          {showAddForm ? 'Cancel' : '+ Add Position'}
-        </button>
+        <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap', justifyContent:'flex-end' }}>
+          <button
+            onClick={() => setShowScanner(true)}
+            style={{
+              display:'flex', alignItems:'center', gap:'0.4rem',
+              padding:'0.55rem 0.9rem',
+              background:'var(--indigo-g)',
+              border:'1px solid var(--border-accent)',
+              borderRadius:'var(--r-s)',
+              color:'var(--indigo-2)',
+              fontSize:'0.82rem',
+              fontWeight:'600',
+              fontFamily:'inherit',
+              cursor:'pointer',
+              transition:'background 0.15s',
+            }}
+          >
+            <ScanLine size={14} /> Scan Screenshot
+          </button>
+          <button className="btn-primary" onClick={() => { resetForm(); setShowAddForm(s => !s); }}>
+            {showAddForm ? 'Cancel' : '+ Add Position'}
+          </button>
+        </div>
       </div>
 
       {showAddForm && (
